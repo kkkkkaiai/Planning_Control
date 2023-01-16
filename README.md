@@ -7,7 +7,9 @@ https://github.com/Shunichi09/PythonLinearNonlinearControl
 https://github.com/tomcattiger1230/CasADi_MPC_MHE_CPP  
 https://github.com/alexliniger/MPCC  
 https://github.com/libai1943/CartesianPlanner  
-https://github.com/HybridRobotics/cbf
+https://github.com/HybridRobotics/cbf  
+https://github.com/tud-amr/localPlannerBench  
+https://github.com/tud-amr/amr-lmpcc
 
 ## Mobile Manipulator
 https://github.com/caelan/SS-Replan 
