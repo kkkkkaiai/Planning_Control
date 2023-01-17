@@ -1,5 +1,5 @@
-# NonlinearPlan&Control
-Planner and Controller
+# Obstacle Formulation and Nonlinear Control
+Perception, Planner and Controller
 
 # Reference
 ## Path Planning and Trajectory Optimization
@@ -7,17 +7,22 @@ https://github.com/libai1943/CartesianPlanner
 https://github.com/icsl-Jeon/traj_gen
 
 ## Motion Controller
-https://github.com/kohonda/mpc_tracker_ros  
+### General
 https://github.com/Shunichi09/PythonLinearNonlinearControl  
+https://github.com/tud-amr/localPlannerBench 
+### MPC
+https://github.com/kohonda/mpc_tracker_ros  
 https://github.com/tomcattiger1230/CasADi_MPC_MHE_CPP  
 https://github.com/alexliniger/MPCC  
-https://github.com/tud-amr/localPlannerBench  
+https://github.com/tud-amr/amr-lmpcc  
+### CBF
 https://github.com/HybridRobotics/cbf  
-https://github.com/tud-amr/amr-lmpcc
 
 ## Environment Perception
-https://github.com/nvidia-isaac/nvblox # TSDF,ESDF
-https://github.com/StarryN/Galaxy # large convex polytopes
+### TSDF, ESDF  
+https://github.com/nvidia-isaac/nvblox  
+### large convex polytopes  
+https://github.com/StarryN/Galaxy  
 
 ## Mobile Manipulator
 https://github.com/caelan/SS-Replan 
