@@ -1,0 +1,47 @@
+/**
+ * @file seed_decomp.h
+ * @brief SeedDecomp Class
+ */
+#ifndef SEED_DECOMP_H
+#define SEED_DECOMP_H
+
+#include <decomp_util/decomp_base.h>
+
+/**
+ * @brief Seed Decomp Class
+ *
+ * Dilate around the given point
+ */
+template <int Dim>
+class SeedDecomp{
+  public:
+    ///Simple constructor
+    SeedDecomp();
+    /**
+     * @brief Basic constructor
+     * @param p1 One end of the line seg
+     * @param p2 The other end of the line seg
+     */
+    SeedDecomp(const Vecf<Dim> &p) : p_(p);
+    /**
+     * @brief Inflate the seed with a sphere
+     * @param radius Robot radius
+     */
+    void dilate(decimal_t radius);
+
+    /// Get the center
+    Vecf<Dim> get_seed() const;
+
+  protected:
+    ///Add the bounding box
+    void add_local_bbox(Polyhedron<Dim> &Vs);
+
+    ///Seed location
+    Vecf<Dim> p_;
+};
+
+typedef SeedDecomp<2> SeedDecomp2D;
+
+typedef SeedDecomp<3> SeedDecomp3D;
+
+#endif
