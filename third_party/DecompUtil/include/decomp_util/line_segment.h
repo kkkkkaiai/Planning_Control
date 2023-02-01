@@ -42,7 +42,6 @@ class LineSegment : public DecompBase<Dim> {
       return line;
     }
 
-  protected:
     ///Add the bounding box
     void add_local_bbox(Polyhedron<Dim> &Vs) {
       if(this->local_bbox_.norm() == 0)
@@ -85,8 +84,7 @@ class LineSegment : public DecompBase<Dim> {
     }
 
     /// Find ellipsoid in 2D
-    template<int U = Dim>
-      typename std::enable_if<U == 2>::type
+    typename std::enable_if<Dim == 2>::type
       find_ellipsoid(double offset_x) {
         const decimal_t f = (p1_ - p2_).norm() / 2;
         Matf<Dim, Dim> C = f * Matf<Dim, Dim>::Identity();
@@ -131,84 +129,82 @@ class LineSegment : public DecompBase<Dim> {
       }
 
     /// Find ellipsoid in 3D
-    template<int U = Dim>
-      typename std::enable_if<U == 3>::type
-      find_ellipsoid(double offset_x) {
-      const decimal_t f = (p1_ - p2_).norm() / 2;
-      Matf<Dim, Dim> C = f * Matf<Dim, Dim>::Identity();
-      Vecf<Dim> axes = Vecf<Dim>::Constant(f);
-      C(0, 0) += offset_x;
-      axes(0) += offset_x;
+    // void find_ellipsoid_3d(double offset_x) {
+    //   const decimal_t f = (p1_ - p2_).norm() / 2;
+    //   Matf<Dim, Dim> C = f * Matf<Dim, Dim>::Identity();
+    //   Vecf<Dim> axes = Vecf<Dim>::Constant(f);
+    //   C(0, 0) += offset_x;
+    //   axes(0) += offset_x;
 
-      if(axes(0) > 0) {
-        double ratio = axes(1) / axes(0);
-        axes *= ratio;
-        C *= ratio;
-      }
+    //   if(axes(0) > 0) {
+    //     double ratio = axes(1) / axes(0);
+    //     axes *= ratio;
+    //     C *= ratio;
+    //   }
 
-      const auto Ri = vec3_to_rotation(p2_ - p1_);
-      C = Ri * C * Ri.transpose();
+    //   const auto Ri = vec3_to_rotation(p2_ - p1_);
+    //   C = Ri * C * Ri.transpose();
 
-      Ellipsoid<Dim> E(C, (p1_ + p2_) / 2);
-      auto Rf = Ri;
+    //   Ellipsoid<Dim> E(C, (p1_ + p2_) / 2);
+    //   auto Rf = Ri;
 
-      auto obs = E.points_inside(this->obs_);
-      auto obs_inside = obs;
-      //**** decide short axes
-      while (!obs_inside.empty()) {
-        const auto pw = E.closest_point(obs_inside);
-        Vecf<Dim> p = Ri.transpose() * (pw - E.d()); // to ellipsoid frame
-        const decimal_t roll = atan2(p(2), p(1));
-        Rf = Ri * Quatf(cos(roll / 2), sin(roll / 2), 0, 0);
-        p = Rf.transpose() * (pw - E.d());
+    //   auto obs = E.points_inside(this->obs_);
+    //   auto obs_inside = obs;
+    //   //**** decide short axes
+    //   while (!obs_inside.empty()) {
+    //     const auto pw = E.closest_point(obs_inside);
+    //     Vecf<Dim> p = Ri.transpose() * (pw - E.d()); // to ellipsoid frame
+    //     const decimal_t roll = atan2(p(2), p(1));
+    //     Rf = Ri * Quatf(cos(roll / 2), sin(roll / 2), 0, 0);
+    //     p = Rf.transpose() * (pw - E.d());
 
-        if(p(0) < axes(0))
-          axes(1) = std::abs(p(1)) / std::sqrt(1 - std::pow(p(0) / axes(0), 2));
-        Matf<Dim, Dim> new_C = Matf<Dim, Dim>::Identity();
-        new_C(0, 0) = axes(0);
-        new_C(1, 1) = axes(1);
-        new_C(2, 2) = axes(1);
-        E.C_ = Rf * new_C * Rf.transpose();
+    //     if(p(0) < axes(0))
+    //       axes(1) = std::abs(p(1)) / std::sqrt(1 - std::pow(p(0) / axes(0), 2));
+    //     Matf<Dim, Dim> new_C = Matf<Dim, Dim>::Identity();
+    //     new_C(0, 0) = axes(0);
+    //     new_C(1, 1) = axes(1);
+    //     new_C(2, 2) = axes(1);
+    //     E.C_ = Rf * new_C * Rf.transpose();
 
-        vec_Vecf<Dim> obs_new;
-        for(const auto &it: obs_inside) {
-          if(1 - E.dist(it) > epsilon_)
-            obs_new.push_back(it);
-        }
-        obs_inside = obs_new;
-      }
+    //     vec_Vecf<Dim> obs_new;
+    //     for(const auto &it: obs_inside) {
+    //       if(1 - E.dist(it) > epsilon_)
+    //         obs_new.push_back(it);
+    //     }
+    //     obs_inside = obs_new;
+    //   }
 
-      //**** reset ellipsoid with old axes(2)
-      C = f * Matf<Dim, Dim>::Identity();
-      C(0, 0) = axes(0);
-      C(1, 1) = axes(1);
-      C(2, 2) = axes(2);
-      E.C_ = Rf * C * Rf.transpose();
-      obs_inside = E.points_inside(obs);
+    //   //**** reset ellipsoid with old axes(2)
+    //   C = f * Matf<Dim, Dim>::Identity();
+    //   C(0, 0) = axes(0);
+    //   C(1, 1) = axes(1);
+    //   C(2, 2) = axes(2);
+    //   E.C_ = Rf * C * Rf.transpose();
+    //   obs_inside = E.points_inside(obs);
 
-      while (!obs_inside.empty()) {
-        const auto pw = E.closest_point(obs_inside);
-        Vec3f p = Rf.transpose() * (pw - E.d());
-        decimal_t dd = 1 - std::pow(p(0) / axes(0), 2) -
-          std::pow(p(1) / axes(1), 2);
-        if(dd > epsilon_)
-          axes(2) = std::abs(p(2)) / std::sqrt(dd);
-        Matf<Dim, Dim> new_C = Matf<Dim, Dim>::Identity();
-        new_C(0, 0) = axes(0);
-        new_C(1, 1) = axes(1);
-        new_C(2, 2) = axes(2);
-        E.C_ = Rf * new_C * Rf.transpose();
+    //   while (!obs_inside.empty()) {
+    //     const auto pw = E.closest_point(obs_inside);
+    //     Vec3f p = Rf.transpose() * (pw - E.d());
+    //     decimal_t dd = 1 - std::pow(p(0) / axes(0), 2) -
+    //       std::pow(p(1) / axes(1), 2);
+    //     if(dd > epsilon_)
+    //       axes(2) = std::abs(p(2)) / std::sqrt(dd);
+    //     Matf<Dim, Dim> new_C = Matf<Dim, Dim>::Identity();
+    //     new_C(0, 0) = axes(0);
+    //     new_C(1, 1) = axes(1);
+    //     new_C(2, 2) = axes(2);
+    //     E.C_ = Rf * new_C * Rf.transpose();
 
-        vec_Vecf<Dim> obs_new;
-        for(const auto &it: obs_inside) {
-          if(1 - E.dist(it) > epsilon_)
-            obs_new.push_back(it);
-        }
-        obs_inside = obs_new;
-      }
+    //     vec_Vecf<Dim> obs_new;
+    //     for(const auto &it: obs_inside) {
+    //       if(1 - E.dist(it) > epsilon_)
+    //         obs_new.push_back(it);
+    //     }
+    //     obs_inside = obs_new;
+    //   }
 
-      this->ellipsoid_ = E;
-    }
+    //   this->ellipsoid_ = E;
+    // }
 
     /// One end of line segment, input
     Vecf<Dim> p1_;

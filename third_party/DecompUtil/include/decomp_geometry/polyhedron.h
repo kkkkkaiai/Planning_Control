@@ -15,12 +15,12 @@ struct Hyperplane {
   Hyperplane(const Vecf<Dim>& p, const Vecf<Dim>& n) : p_(p), n_(n) {}
 
   /// Calculate the signed distance from point
-  decimal_t signed_dist(const Vecf<Dim>& pt) const {
+  double signed_dist(const Vecf<Dim>& pt) const {
     return n_.dot(pt - p_);
   }
 
   /// Calculate the distance from point
-  decimal_t dist(const Vecf<Dim>& pt) const {
+  double dist(const Vecf<Dim>& pt) const {
     return std::abs(signed_dist(pt));
   }
 

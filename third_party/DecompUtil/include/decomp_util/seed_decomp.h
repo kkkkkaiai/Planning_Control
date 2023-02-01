@@ -38,6 +38,10 @@ class SeedDecomp : public DecompBase<Dim> {
       return p_;
     }
 
+    void set_p(const Vecf<Dim> &p) {
+      p_ = p;
+    }
+
     ///Add the bounding box
     void add_local_bbox(Polyhedron<Dim> &Vs) {
       if(this->local_bbox_.norm() == 0)

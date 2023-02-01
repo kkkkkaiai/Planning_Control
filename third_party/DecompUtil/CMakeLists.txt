@@ -22,7 +22,24 @@ set(BUILD_SHARED_LIBS ON)
 
 find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} include)
+include_directories(${EIGEN3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} include python)
+
+# PYBIND
+if(CMAKE_HOST_APPLE)
+  find_package(pybind11 REQUIRED)
+elseif(CMAKE_HOST_UNIX)
+  include(pybind11.cmake)
+endif()
+
+file(GLOB INCLUDE_FILES "include/*/*.h" "python/*.h")
+file(GLOB PYTHON_FILES "python/*.cpp" )
+
+pybind11_add_module(${PROJECT_NAME} ${INCLUDE_FILES} ${PYTHON_FILES})
+
+install(TARGETS ${PROJECT_NAME}
+  COMPONENT python
+  LIBRARY DESTINATION "${PYTHON_LIBRARY_DIR}"
+)
 
 # TEST
 # include(CTest)
@@ -43,34 +60,6 @@ include_directories(${EIGEN3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} include)
 # target_link_libraries(test_iterative_decomp ${Boost_LIBRARIES})
 # add_test(test_iterative_decomp test_iterative_decomp ${CMAKE_SOURCE_DIR}/data/obstacles.txt)
 
-
-
-# PYBIND
-if(CMAKE_HOST_APPLE)
-  find_package(pybind11 REQUIRED)
-elseif(CMAKE_HOST_UNIX)
-  include(pybind11.cmake)
-endif()
-
-# include(FetchContent)
-# FetchContent_Declare(
-#     pybind11
-#     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-#     GIT_TAG        v2.10.0
-#     GIT_SHALLOW    TRUE
-# )
-
-file(GLOB INCLUDE_FILES "include/*/*.h")
-# file(GLOB SOURCE_FILES "src/*/*.cpp")
-file(GLOB PYTHON_FILES "python/*.cpp")
-
-pybind11_add_module(${PROJECT_NAME}_seed ${INCLUDE_FILES} ${PYTHON_FILES})
-
-install(TARGETS ${PROJECT_NAME}_seed
-  COMPONENT python
-  LIBRARY DESTINATION "${PYTHON_LIBRARY_DIR}"
-)
-
 # install(FILES "${PROJECT_NAME}Config.cmake" "${PROJECT_NAME}ConfigVersion.cmake"
 #         DESTINATION "share/${PROJECT_NAME}/cmake")
 
@@ -81,3 +70,8 @@ install(TARGETS ${PROJECT_NAME}_seed
 
 # install(DIRECTORY include/decomp_basis include/decomp_geometry include/decomp_util
 #         DESTINATION include)
+
+
+
+
+
