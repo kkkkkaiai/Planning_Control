@@ -1,23 +1,27 @@
 from decomp_util import *
 import numpy as np
+import matplotlib.pyplot as plt
 
-obs = list([[-0.2, 1.5],
+obs = np.array([[-0.2, 1.5],
                 [1, 0],
                 [0.8, -1],
                 [-0.5, -0.5]])
 
 s_pos = np.array([0, 0])
+bbox = np.array([4, 4])
 
 decomp = SeedDecomp(s_pos)
 decomp.set_obs(obs)
-
-bbox = np.array([2, 2])
 decomp.set_local_bbox(bbox)
-
 decomp.dilate(1.)
 
 # print(decomp.get_ellipsoid())
-poly = decomp.get_polyhedron().hyperplanes()
+poly = decomp.get_polyhedron()
+E = decomp.get_ellipsoid()
+vertices = np.array(cal_vertices(poly))
+vertices = np.vstack([vertices, vertices[0]])
 
-for i in poly:
-    print(i.p_)
+plt.axis('equal')
+plt.scatter(obs[:,0], obs[:, 1], c='r')
+plt.plot(vertices[:, 0], vertices[:, 1])
+plt.show()

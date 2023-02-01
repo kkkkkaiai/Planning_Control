@@ -3,6 +3,7 @@
 #include <decomp_util/line_segment.h>
 #include <decomp_geometry/ellipsoid.h>
 #include <decomp_geometry/polyhedron.h>
+#include <decomp_geometry/geometric_utils.h>
 // #include <pybind_decomp_type.h>
 #include <pybind11/stl.h>
 #include <pybind11/eigen.h>
@@ -69,6 +70,29 @@ void decomp_util_all(py::module &m){
   .def_readwrite("vs_", &Polyhedron<Dim>::vs_)
   ;
 
+  py::class_<Ellipsoid<Dim>>(m, "Ellipsoid")
+  .def(py::init<>())
+  .def(py::init<const Matf<Dim, Dim>&, const Vecf<Dim>&>())
+  .def("dist",
+       &Ellipsoid<Dim>::dist)
+  .def("points_inside",
+       &Ellipsoid<Dim>::points_inside)
+  .def("closest_point",
+       &Ellipsoid<Dim>::closest_point)
+  .def("closest_hyperplane",
+       &Ellipsoid<Dim>::closest_hyperplane)
+  .def("sample",
+       &Ellipsoid<Dim>::sample)
+  .def("print",
+       &Ellipsoid<Dim>::print)
+  .def("volume",
+       &Ellipsoid<Dim>::volume)
+  .def("C",
+       &Ellipsoid<Dim>::C)
+  .def("d",
+       &Ellipsoid<Dim>::d)
+  ;
+
   py::class_<DecompBase<Dim>, PyDecompBase<Dim>>(m, "DecompBase")
   .def(py::init<>())
   .def("set_local_bbox",
@@ -122,12 +146,18 @@ void decomp_util_all(py::module &m){
   ;
 }
 
+template<int Dim>
+void geometric_utils_all(py::module &m){
+  m.def("cal_vertices", py::overload_cast<const Polyhedron2D&>(&cal_vertices));
+}
+
 namespace decomp_util{
 
 PYBIND11_MODULE(decomp_util, m) {
   // Optional docstring
-  m.doc() = "Decomposition Util Library";
+  m.doc() = "Decomposition & Geometric Utils Library";
   
   decomp_util_all<2>(m);
+  geometric_utils_all<2>(m);
 } // end of PYBIND11_MODULE
 } // end of decomp_util
