@@ -15,6 +15,7 @@ https://github.com/kohonda/mpc_tracker_ros
 https://github.com/tomcattiger1230/CasADi_MPC_MHE_CPP  
 https://github.com/alexliniger/MPCC  
 https://github.com/tud-amr/amr-lmpcc  
+https://github.com/jan9419/Generic_NMPC_Cpp
 ### CBF
 https://github.com/HybridRobotics/cbf  
 
