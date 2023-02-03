@@ -1,6 +1,8 @@
 #include <decomp_util/seed_decomp.h>
 #include <decomp_util/decomp_base.h>
 #include <decomp_util/line_segment.h>
+#include <decomp_util/ellipsoid_decomp.h>
+#include <decomp_util/iterative_decomp.h>
 #include <decomp_geometry/ellipsoid.h>
 #include <decomp_geometry/polyhedron.h>
 #include <decomp_geometry/geometric_utils.h>
@@ -143,6 +145,47 @@ void decomp_util_all(py::module &m){
         py::arg("Vs"))
   .def("find_ellipsoid",
        &LineSegment<Dim>::find_ellipsoid)
+  ;
+
+  py::class_<EllipsoidDecomp<Dim>>(m, "EllipsoidDecomp")
+  .def(py::init<>())
+  .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
+  .def("set_obs",
+       &EllipsoidDecomp<Dim>::set_obs)
+  .def("set_local_bbox",
+       &EllipsoidDecomp<Dim>::set_local_bbox)
+  .def("get_path",
+       &EllipsoidDecomp<Dim>::get_path)
+  .def("get_polyhedrons",
+       &EllipsoidDecomp<Dim>::get_polyhedrons)
+  .def("get_ellipsoids",
+       &EllipsoidDecomp<Dim>::get_ellipsoids)
+  .def("get_constraints",
+       &EllipsoidDecomp<Dim>::get_constraints)
+  .def("dilate",
+       &EllipsoidDecomp<Dim>::dilate)
+  .def("add_global_bbox",
+       &EllipsoidDecomp<Dim>::add_global_bbox)
+  .def_readwrite("path_", &EllipsoidDecomp<Dim>::path_)
+  .def_readwrite("obs_", &EllipsoidDecomp<Dim>::obs_)
+  .def_readwrite("ellipsoids_", &EllipsoidDecomp<Dim>::ellipsoids_)
+  .def_readwrite("polyhedrons_", &EllipsoidDecomp<Dim>::polyhedrons_)
+  .def_readwrite("local_bbox_", &EllipsoidDecomp<Dim>::local_bbox_)
+  .def_readwrite("global_bbox_min_", &EllipsoidDecomp<Dim>::global_bbox_min_)
+  .def_readwrite("global_bbox_max_", &EllipsoidDecomp<Dim>::global_bbox_max_)
+  ;
+
+  py::class_<IterativeDecomp<Dim>, EllipsoidDecomp<Dim>>(m, "IterativeDecomp")
+  .def(py::init())
+  .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
+  .def("dilate_iter",
+       &IterativeDecomp<Dim>::dilate_iter)
+  .def("downsample",
+       &IterativeDecomp<Dim>::downsample)
+  .def("cal_closest_dist",
+       &IterativeDecomp<Dim>::cal_closest_dist)
+  .def("simplify",
+       &IterativeDecomp<Dim>::simplify)
   ;
 }
 

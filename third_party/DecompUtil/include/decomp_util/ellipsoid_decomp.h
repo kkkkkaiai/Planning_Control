@@ -85,9 +85,7 @@ public:
 
  }
 
-protected:
- template<int U = Dim>
-   typename std::enable_if<U == 2>::type
+ typename std::enable_if<Dim == 2>::type
    add_global_bbox(Polyhedron<Dim> &Vs) {
      //**** add bound along X, Y axis
 
@@ -99,21 +97,21 @@ protected:
      Vs.add(Hyperplane2D(Vec2f(0, global_bbox_min_(1)), Vec2f(0, -1)));
    }
 
- template<int U = Dim>
-   typename std::enable_if<U == 3>::type
-   add_global_bbox(Polyhedron<Dim> &Vs) {
-     //**** add bound along X, Y, Z axis
-     //*** Z
-     Vs.add(Hyperplane3D(Vec3f(0, 0, global_bbox_max_(2)), Vec3f(0, 0, 1)));
-     Vs.add(Hyperplane3D(Vec3f(0, 0, global_bbox_min_(2)), Vec3f(0, 0, -1)));
+//  template<int U = Dim>
+//    typename std::enable_if<U == 3>::type
+//    add_global_bbox(Polyhedron<Dim> &Vs) {
+//      //**** add bound along X, Y, Z axis
+//      //*** Z
+//      Vs.add(Hyperplane3D(Vec3f(0, 0, global_bbox_max_(2)), Vec3f(0, 0, 1)));
+//      Vs.add(Hyperplane3D(Vec3f(0, 0, global_bbox_min_(2)), Vec3f(0, 0, -1)));
 
-     //*** X
-     Vs.add(Hyperplane3D(Vec3f(global_bbox_max_(0), 0, 0), Vec3f(1, 0, 0)));
-     Vs.add(Hyperplane3D(Vec3f(global_bbox_min_(0), 0, 0), Vec3f(-1, 0, 0)));
-     //*** Y
-     Vs.add(Hyperplane3D(Vec3f(0, global_bbox_max_(1), 0), Vec3f(0, 1, 0)));
-     Vs.add(Hyperplane3D(Vec3f(0, global_bbox_max_(1), 0), Vec3f(0, -1, 0)));
-   }
+//      //*** X
+//      Vs.add(Hyperplane3D(Vec3f(global_bbox_max_(0), 0, 0), Vec3f(1, 0, 0)));
+//      Vs.add(Hyperplane3D(Vec3f(global_bbox_min_(0), 0, 0), Vec3f(-1, 0, 0)));
+//      //*** Y
+//      Vs.add(Hyperplane3D(Vec3f(0, global_bbox_max_(1), 0), Vec3f(0, 1, 0)));
+//      Vs.add(Hyperplane3D(Vec3f(0, global_bbox_max_(1), 0), Vec3f(0, -1, 0)));
+//    }
 
  vec_Vecf<Dim> path_;
  vec_Vecf<Dim> obs_;

@@ -47,8 +47,7 @@ class IterativeDecomp : public EllipsoidDecomp<Dim>
         }
       }
     }
-
-  protected:
+    
     /// Uniformly sample path into many segments
     vec_Vecf<Dim> downsample(const vec_Vecf<Dim> &ps, decimal_t d) {
       // subdivide according to length
