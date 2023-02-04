@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
   // Plot the result in svg image
   typedef boost::geometry::model::d2::point_xy<double> point_2d;
-  std::ofstream svg("output.svg");
+  std::ofstream svg("seed_output.svg");
   // Declare a stream and an SVG mapper
   boost::geometry::svg_mapper<point_2d> mapper(svg, 1000, 1000);
 

@@ -1,4 +1,5 @@
-from decomp_util import *
+from decomp_util_2d import *
+from geometric_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -21,7 +22,7 @@ bbox = np.array([2, 2])
 path = np.array([[-1.5, 0.0],
                  [1.5, 0.3]])
 
-decomp = IterativeDecomp(origin, range)
+decomp = IterativeDecomp2D(origin, range)
 decomp.set_obs(obs)
 decomp.set_local_bbox(bbox)
 decomp.dilate_iter(path, 5, 0.3, 0.0)

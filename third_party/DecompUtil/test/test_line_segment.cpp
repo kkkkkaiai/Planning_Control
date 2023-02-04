@@ -28,14 +28,14 @@ int main(int argc, char **argv) {
   const Vec2f pos2(1.5, 0.3);
 
   // Initialize SeedDecomp2D
-  LineSegment2D decomp(pos1, pos2);
+  LineSegment2D<> decomp(pos1, pos2);
   decomp.set_obs(obs);
   decomp.set_local_bbox(Vec2f(2, 2));
   decomp.dilate(0);
 
   // Plot the result in svg image
   typedef boost::geometry::model::d2::point_xy<double> point_2d;
-  std::ofstream svg("output.svg");
+  std::ofstream svg("line_seg_output.svg");
   // Declare a stream and an SVG mapper
   boost::geometry::svg_mapper<point_2d> mapper(svg, 1000, 1000);
 

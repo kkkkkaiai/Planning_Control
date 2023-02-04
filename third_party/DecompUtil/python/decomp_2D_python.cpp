@@ -17,14 +17,6 @@ template<int Dim>
 class PyDecompBase: public DecompBase<Dim>{
 public:
   using DecompBase<Dim>::DecompBase;
-  void dilate(decimal_t radius=0) override{
-    PYBIND11_OVERRIDE_PURE(
-          void,
-          DecompBase<Dim>,
-          dialte,
-          radius
-    );
-  }
   void shrink(double shrink_distance) override {
     PYBIND11_OVERRIDE_PURE(
           void,
@@ -44,7 +36,7 @@ public:
 };
 
 template<int Dim>
-void decomp_util_all(py::module &m){
+void decomp_util_2D(py::module &m){
   py::class_<Hyperplane<Dim>>(m, "Hyperplane")
   .def(py::init<>())
   .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
@@ -116,7 +108,7 @@ void decomp_util_all(py::module &m){
         &DecompBase<Dim>::find_polyhedron)
   ;
 
-  py::class_<SeedDecomp<Dim>, DecompBase<Dim>>(m, "SeedDecomp")
+  py::class_<SeedDecomp<Dim>, DecompBase<Dim>>(m, "SeedDecomp2D")
   .def(py::init<>())
   .def(py::init<const Vecf<Dim>&>(), py::arg("p"))
   .def("dilate", 
@@ -135,16 +127,20 @@ void decomp_util_all(py::module &m){
   py::class_<LineSegment<Dim>, DecompBase<Dim>>(m, "LineSegment")
   .def(py::init<>())
   .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
-  .def("dilate", 
-        py::overload_cast<double>(&LineSegment<Dim>::dilate),
-        py::arg("radius")) 
   .def("get_line_segment",
-        &LineSegment<Dim>::get_line_segment)
+       &LineSegment<Dim>::get_line_segment)
   .def("add_local_bbox",
-        py::overload_cast<Polyhedron<Dim>&>(&LineSegment<Dim>::add_local_bbox),
-        py::arg("Vs"))
+       py::overload_cast<Polyhedron<Dim>&>(&LineSegment<Dim>::add_local_bbox),
+       py::arg("Vs"))
+  ;
+
+  py::class_<LineSegment2D<Dim>, LineSegment<Dim>>(m, "LineSegment2D")
+  .def(py::init<>())
+  .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
+  .def("dilate", 
+       &LineSegment2D<Dim>::dilate) 
   .def("find_ellipsoid",
-       &LineSegment<Dim>::find_ellipsoid)
+       &LineSegment2D<Dim>::find_ellipsoid)
   ;
 
   py::class_<EllipsoidDecomp<Dim>>(m, "EllipsoidDecomp")
@@ -162,10 +158,6 @@ void decomp_util_all(py::module &m){
        &EllipsoidDecomp<Dim>::get_ellipsoids)
   .def("get_constraints",
        &EllipsoidDecomp<Dim>::get_constraints)
-  .def("dilate",
-       &EllipsoidDecomp<Dim>::dilate)
-  .def("add_global_bbox",
-       &EllipsoidDecomp<Dim>::add_global_bbox)
   .def_readwrite("path_", &EllipsoidDecomp<Dim>::path_)
   .def_readwrite("obs_", &EllipsoidDecomp<Dim>::obs_)
   .def_readwrite("ellipsoids_", &EllipsoidDecomp<Dim>::ellipsoids_)
@@ -175,32 +167,36 @@ void decomp_util_all(py::module &m){
   .def_readwrite("global_bbox_max_", &EllipsoidDecomp<Dim>::global_bbox_max_)
   ;
 
-  py::class_<IterativeDecomp<Dim>, EllipsoidDecomp<Dim>>(m, "IterativeDecomp")
+  py::class_<EllipsoidDecomp2D<Dim>, EllipsoidDecomp<Dim>>(m, "EllipsoidDecomp2D")
+  .def(py::init<>())
+  .def(py::init<const Vecf<Dim> &, const Vecf<Dim> &>())
+  .def("dilate", 
+       &EllipsoidDecomp2D<Dim>::dilate) 
+  .def("add_global_bbox",
+       &EllipsoidDecomp2D<Dim>::add_global_bbox)
+  ;
+
+  py::class_<IterativeDecomp2D<Dim>, EllipsoidDecomp2D<Dim>>(m, "IterativeDecomp2D")
   .def(py::init())
   .def(py::init<const Vecf<Dim>&, const Vecf<Dim>&>())
   .def("dilate_iter",
-       &IterativeDecomp<Dim>::dilate_iter)
+       &IterativeDecomp2D<Dim>::dilate_iter)
   .def("downsample",
-       &IterativeDecomp<Dim>::downsample)
+       &IterativeDecomp2D<Dim>::downsample)
   .def("cal_closest_dist",
-       &IterativeDecomp<Dim>::cal_closest_dist)
+       &IterativeDecomp2D<Dim>::cal_closest_dist)
   .def("simplify",
-       &IterativeDecomp<Dim>::simplify)
+       &IterativeDecomp2D<Dim>::simplify)
   ;
 }
 
-template<int Dim>
-void geometric_utils_all(py::module &m){
-  m.def("cal_vertices", py::overload_cast<const Polyhedron2D&>(&cal_vertices));
-}
 
 namespace decomp_util{
 
-PYBIND11_MODULE(decomp_util, m) {
+PYBIND11_MODULE(decomp_util_2d, m) {
   // Optional docstring
-  m.doc() = "Decomposition & Geometric Utils Library";
+  m.doc() = "Decomposition 2D Utils Library";
   
-  decomp_util_all<2>(m);
-  geometric_utils_all<2>(m);
+  decomp_util_2D<2>(m);
 } // end of PYBIND11_MODULE
 } // end of decomp_util

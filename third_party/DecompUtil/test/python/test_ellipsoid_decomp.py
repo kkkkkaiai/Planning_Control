@@ -1,4 +1,5 @@
-from decomp_util import *
+from decomp_util_2d import *
+from geometric_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,7 +23,7 @@ path = np.array([[1, 1.0],
                  [0.0, 0.0],
                  [-1, 1.0]])
 
-decomp = EllipsoidDecomp(origin, range)
+decomp = EllipsoidDecomp2D(origin, range)
 decomp.set_obs(obs)
 decomp.set_local_bbox(bbox)
 decomp.dilate(path, 0)

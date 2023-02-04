@@ -1,4 +1,5 @@
-from decomp_util import *
+from decomp_util_2d import *
+from geometric_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,7 +19,7 @@ pos2 = np.array([1.5, 0.3])
 
 bbox = np.array([2, 2])
 
-decomp = LineSegment(pos1, pos2)
+decomp = LineSegment2D(pos1, pos2)
 decomp.set_obs(obs)
 decomp.set_local_bbox(bbox)
 decomp.dilate(0)

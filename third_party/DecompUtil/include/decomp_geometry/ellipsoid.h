@@ -59,8 +59,8 @@ struct Ellipsoid {
 
   /// Sample n points along the contour
 
-  typename std::enable_if<Dim == 2, vec_Vecf<Dim>>::type
-    sample(int num) const {
+
+  vec_Vecf<Dim> sample(int num) const {
     vec_Vecf<Dim> pts;
       decimal_t dyaw = M_PI*2/num;
       for(decimal_t yaw = 0; yaw < M_PI*2; yaw+=dyaw) {

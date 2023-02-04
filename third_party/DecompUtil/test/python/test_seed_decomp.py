@@ -1,4 +1,5 @@
-from decomp_util import *
+from decomp_util_2d import *
+from geometric_utils import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -10,7 +11,7 @@ obs = np.array([[-0.2, 1.5],
 s_pos = np.array([0, 0])
 bbox = np.array([4, 4])
 
-decomp = SeedDecomp(s_pos)
+decomp = SeedDecomp2D(s_pos)
 decomp.set_obs(obs)
 decomp.set_local_bbox(bbox)
 decomp.dilate(1.)

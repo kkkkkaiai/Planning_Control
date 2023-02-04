@@ -33,14 +33,14 @@ int main(int argc, char **argv) {
   path.push_back(Vec2f(-1, 1.0));
 
   // Initialize SeedDecomp2D
-  EllipsoidDecomp2D decomp(origin, range);
+  EllipsoidDecomp2D<2> decomp(origin, range);
   decomp.set_obs(obs);
   decomp.set_local_bbox(Vec2f(2, 2));
   decomp.dilate(path, 0);
 
   // Plot the result in svg image
   typedef boost::geometry::model::d2::point_xy<double> point_2d;
-  std::ofstream svg("output.svg");
+  std::ofstream svg("ellipsoid_output.svg");
   // Declare a stream and an SVG mapper
   boost::geometry::svg_mapper<point_2d> mapper(svg, 1000, 1000);
 

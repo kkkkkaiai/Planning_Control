@@ -50,7 +50,7 @@ class DecompBase {
      * @brief Inflate the line segment
      * @param radius the offset added to the long semi-axis
      */
-    virtual void dilate(decimal_t radius = 0) = 0;
+    virtual void dilate(decimal_t radius = 0) {};
 
     /**
      * @brief Shrink the polyhedron
@@ -59,6 +59,8 @@ class DecompBase {
     virtual void shrink(double shrink_distance) {}
 
     virtual void add_local_bbox(Polyhedron<Dim> &Vs) = 0;
+
+    virtual ~DecompBase() {}
 
     void find_polyhedron() {
       //**** find half-space

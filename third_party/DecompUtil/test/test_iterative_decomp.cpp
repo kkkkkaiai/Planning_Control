@@ -32,14 +32,14 @@ int main(int argc, char **argv) {
   path.push_back(Vec2f(1.5, 0.3));
 
   // Initialize SeedDecomp2D
-  IterativeDecomp2D decomp(origin, range);
+  IterativeDecomp2D<> decomp(origin, range);
   decomp.set_obs(obs);
   decomp.set_local_bbox(Vec2f(2, 2));
   decomp.dilate_iter(path, 5, 0.3, 0.0);
 
   // Plot the result in svg image
   typedef boost::geometry::model::d2::point_xy<double> point_2d;
-  std::ofstream svg("output.svg");
+  std::ofstream svg("iterative_output.svg");
   // Declare a stream and an SVG mapper
   boost::geometry::svg_mapper<point_2d> mapper(svg, 1000, 1000);
 

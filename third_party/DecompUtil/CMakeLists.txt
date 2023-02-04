@@ -31,12 +31,16 @@ elseif(CMAKE_HOST_UNIX)
   include(pybind11.cmake)
 endif()
 
-file(GLOB INCLUDE_FILES "include/*/*.h" "python/*.h")
-file(GLOB PYTHON_FILES "python/*.cpp" )
+file(GLOB INCLUDE_FILES "include/*/*.h")
+file(GLOB 2D_PYTHON_FILES "python/*_2D_*.cpp" )
+file(GLOB 3D_PYTHON_FILES "python/*_3D_*.cpp" )
+file(GLOB GEOMETRIC_UTILS_FILES "python/geometric_utils_python.cpp" )
 
-pybind11_add_module(${PROJECT_NAME} ${INCLUDE_FILES} ${PYTHON_FILES})
+pybind11_add_module(${PROJECT_NAME}_2d ${INCLUDE_FILES} ${2D_PYTHON_FILES})
+pybind11_add_module(${PROJECT_NAME}_3d ${INCLUDE_FILES} ${3D_PYTHON_FILES})
+pybind11_add_module(geometric_utils ${INCLUDE_FILES} ${GEOMETRIC_UTILS_FILES})
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}_2d ${PROJECT_NAME}_3d geometric_utils
   COMPONENT python
   LIBRARY DESTINATION "${PYTHON_LIBRARY_DIR}"
 )
