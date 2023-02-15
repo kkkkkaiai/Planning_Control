@@ -131,3 +131,5 @@ dmypy.json
 # VScode
 build
 .vscode
+cmake-build-debug
+.idea

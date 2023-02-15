@@ -1,6 +1,29 @@
 # Obstacle Formulation and Nonlinear Control
 Perception, Planner and Controller
 
+# Prerequest
+
+```bash
+# Install matplotlib-cpp
+git clone https://github.com/lava/matplotlib-cpp.git
+cd matplotlib-cpp
+mkdir build && cd build
+cmake ..
+make -j4
+sudo make install
+```
+
+# Test
+```bash
+mkdir build && cd build
+cmake ..
+make -j4
+```
+## B-Spline Curve
+```bash
+./constant_speed_test
+```
+
 # Reference
 ## Path Planning and Trajectory Optimization
 https://github.com/libai1943/CartesianPlanner  
