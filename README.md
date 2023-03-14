@@ -2,11 +2,15 @@
 Perception, Planner and Controller
 
 # Reference
+
 ## Path Planning and Trajectory Optimization
 https://github.com/libai1943/CartesianPlanner  
-https://github.com/icsl-Jeon/traj_gen
+https://github.com/icsl-Jeon/traj_gen  
+https://github.com/richardos/occupancy-grid-a-star  
+
 
 ## Motion Controller
+
 ### General
 https://github.com/Shunichi09/PythonLinearNonlinearControl  
 https://github.com/tud-amr/localPlannerBench 
@@ -20,12 +24,15 @@ https://github.com/taewankim1/sequential_convex_programming*
 https://github.com/samarth-kalluraya/Obstacle_Avoidance_MPC_Controller_A_star_Planning  
 https://github.com/xinjie-liu/SafeMPC_ObstacleAvoidance  
 https://github.com/jaidevshriram/Robotics-Navigation  
-https://github.com/Vassil17/Safe_Nonholonomic_MPC
+https://github.com/Vassil17/Safe_Nonholonomic_MPC  
+https://github.com/helgeanl/GP-MPC  
+
 
 ### CBF
 https://github.com/HybridRobotics/cbf  
 
 ## Environment Perception
+
 ### TSDF, ESDF  
 https://github.com/nvidia-isaac/nvblox  
 ### large convex polytopes  

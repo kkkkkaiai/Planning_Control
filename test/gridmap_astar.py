@@ -9,33 +9,80 @@ from planning.path_generator.astar import a_star
 from planning.trajectory_generator.spline_interpolate import *
 from utils.util import *
 
-gmap = OccupancyGridMap.from_png('envs/maps/example_map_occupancy.png', 0.05)
+class PathManager:
+    def __init__(self, map_file='envs/maps/example_map_occupancy.png', resolusion=0.05, \
+                 start_node=(6.0, 3.0), end_node=(16.0, 16.0)) -> None:
+        self._map = OccupancyGridMap.from_png(map_file, resolusion)
+        self._start_node = start_node
+        self._end_node = end_node
+        self._resolution = resolusion
 
-# set a start and an end node (in meters)
-start_node = (6.0, 3.0)
-goal_node = (16.0, 16.0)
+        self._path = None
+        self._path_px = None
 
-# run A*
-path, path_px = a_star(start_node, goal_node, gmap, movement='8N')
-# path_arr = np.asarray(path) / 0.05
-# print(path_arr)
-# cx, cy, cyaw, ck, s = calc_spline_course(path_arr[:, 0], path_arr[:, 1], ds=0.1)
-# sp = calc_speed_profile(cx, cy, cyaw, 10)
-# ref_path = PATH(cx, cy, cyaw, ck)
+    def find_path(self, start_node, end_node):
+        # run A*
+        self._start_node = start_node
+        self._end_node = end_node
+        self._path, self._path_px = a_star(self._start_node, self._end_node, self._map, movement='8N')
+        self._path = np.asarray(self._path) / self._resolution
+        return self._path
+    
+    def find_gradient(self):
+        '''
+        find the index of which the gradient is larger than a threshold
+        '''
+        path_index = []
+        for i in range(1, len(self._path)-1):
 
-gmap.plot()
-if len(path) > 0:
-    # plot resulting path in pixels over the map
-    plot_path(path_px)
-    # plt.plot(cx, cy)
-else:
-    print('Goal is not reachable')
+            if abs(np.linalg.norm(self._path[i]-self._path[i-1]) - \
+                   np.linalg.norm(self._path[i+1]-self._path[i])) > 0.2:
+                path_index.append(i-1)
+        path_index.append(len(self._path)-1)
+        return self._path[path_index]
+    
+    def is_path_found(self):
+        return self._path is not None
+    
+    def spline_interpolate(self, path=None, ds=0.2):
+        if path is None:
+            path = self._path
+        cx, cy, cyaw, ck, s = calc_spline_course(path[:, 0], path[:, 1], ds=ds)
+        self._sp = calc_speed_profile(cx, cy, cyaw, 10)
+        self._ref_path = PATH(cx, cy, cyaw, ck)
+        print('Path length: ', len(self._path), 'Interpolated path length: ', self._ref_path.length)
 
-    # plot start and goal points over the map (in pixels)
-    start_node_px = gmap.get_index_from_coordinates(start_node[0], start_node[1])
-    goal_node_px = gmap.get_index_from_coordinates(goal_node[0], goal_node[1])
+        return self._ref_path, self._sp
 
-    plt.plot(start_node_px[0], start_node_px[1], 'ro')
-    plt.plot(goal_node_px[0], goal_node_px[1], 'go')
+    def plot_map(self):
+        self._map.plot()
 
-plt.show()
+    def plot_path(self):
+        if self.is_path_found():
+            plot_path(self._path, linestyle='--', label='origin path')
+        else:
+            # plot start and goal points over the map (in pixels)
+            start_node_px = self._map.get_index_from_coordinates(self._start_node[0], self._start_node[1])
+            goal_node_px = self._map.get_index_from_coordinates(self._goal_node[0], self._goal_node[1])
+
+            plt.plot(start_node_px[0], start_node_px[1], 'ro')
+            plt.plot(goal_node_px[0], goal_node_px[1], 'go')
+            raise ValueError('Path is not found')
+        
+    def plot_interpolated_path(self):
+        try:
+            if self._ref_path is not None:
+                plot_path(np.array([self._ref_path.cx, self._ref_path.cy]).T, color='cyan', label='interpolated path')
+        except:
+            print('Not do interpolation yet, please call spline_interpolate() first')
+
+if __name__ == '__main__':
+    pM = PathManager()
+    pM.find_path((6.0, 3.0), (16.0, 16.0))
+    path = pM.find_gradient()
+    pM.spline_interpolate(path)
+    pM.plot_map()
+    pM.plot_interpolated_path()
+    pM.plot_path()
+    plt.legend()
+    plt.show()

@@ -54,13 +54,13 @@ def png_to_ogm(filename, normalized=False, origin='lower'):
     return out_img
 
 
-def plot_path(path):
+def plot_path(path, color='y', linestyle=None, label=None):
     start_x, start_y = path[0]
     goal_x, goal_y = path[-1]
 
     # plot path
     path_arr = numpy.array(path)
-    plt.plot(path_arr[:, 0], path_arr[:, 1], 'y')
+    plt.plot(path_arr[:, 0], path_arr[:, 1], c=color, linestyle=linestyle, label=label)
 
     # plot start point
     plt.plot(start_x, start_y, 'ro')

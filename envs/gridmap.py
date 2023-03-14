@@ -192,7 +192,7 @@ class OccupancyGridMap:
         """
         plot the grid map
         """
-        plt.imshow(self.data, vmin=min_val, vmax=1, origin=origin, interpolation='none', alpha=alpha)
+        plt.imshow(self.data, vmin=min_val, vmax=1, origin=origin, interpolation='none', cmap='gist_gray_r', alpha=alpha)
         plt.draw()
 
     @staticmethod
