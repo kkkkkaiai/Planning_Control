@@ -1,5 +1,4 @@
 from model import *
-from matplotlib.patches import Circle
 
 class KinematicCarDynamics:
     @staticmethod
@@ -39,11 +38,3 @@ class KinematicCarSystem(System):
         logger._xs.append(self._state._x)
         logger._us.append(self._state._u)
 
-class KinematicGeometry:
-    def __init__(self, state) -> None:
-        self._radius = 0.3
-        self._position = (state[0], state[1], state[2])
-    
-    def get_plot_patch(self, state):
-        self._region.center = state[0:2]
-        return Circle(self._position, self._radius, fill=False, color="red")

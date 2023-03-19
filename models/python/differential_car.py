@@ -1,10 +1,12 @@
-from model import *
+from models.python.model import *
+from matplotlib.patches import Circle
+from copy import copy
+import numpy as np
 
 class DifferentalCarDynamics:
     @staticmethod
     def forward_dynamics(x, u, timestep):
         """Return updated state in a form of `np.ndnumpy`"""
-        l = 0.1
         x_next = np.ndarray(shape=(3,), dtype=float)
         x_next[0] = x[0] + u[0] * math.cos(x[2]) * timestep
         x_next[1] = x[1] + u[0] * math.sin(x[2]) * timestep
@@ -21,14 +23,83 @@ class DifferentalCarDynamics:
         y_symbol_next = x_symbol[1] + u_symbol[0] * ca.sin(x_symbol[2]) * timestep
         theta_symbol_next = x_symbol[2] + u_symbol[1] * timestep
         state_symbol_next = ca.vertcat(x_symbol_next, y_symbol_next, theta_symbol_next)
-        return ca.Function("dubin_car_dynamics", [x_symbol, u_symbol], [state_symbol_next])
+        return ca.Function("differential_car_dynamics", [x_symbol, u_symbol], [state_symbol_next])
+
+    @staticmethod
+    def nominal_safe_controller(x, timestep, amin, amax):
+        """Return updated state using nominal safe controller in a form of `np.ndnumpy`"""
+        u_nom = np.zeros(shape=(2,))
+        u_nom[0] = np.clip(-x[2] / timestep, amin, amax)
+        return DifferentalCarDynamics.forward_dynamics(x, u_nom, timestep), u_nom
+
+class DifferrentialCarStates:
+    def __init__(self, x, u=np.array([0.0, 0.0])):
+        '''
+        x: [x, y, theta], ndarray
+        u: [v, omega], ndarray
+        '''
+        self._x = x
+        self._last_x = copy(x)
+        self._u = u
+
+    def translation(self):
+        return np.array([[self._x[0]], [self._x[1]]])
+
+    def rotation(self):
+        return np.array(
+            [
+                [math.cos(self._x[2]), -math.sin(self._x[2])],
+                [math.sin(self._x[2]), math.cos(self._x[2])],
+            ]
+        )
+    
+    def velocity(self, dt):
+        dx = self._x[0]-self._last_x[0]
+        dy = self._x[1]-self._last_x[1]
+        # calculate the direction of the velocity
+        ratio = 1
+        yaw = np.radians(self._x[2])
+        v_yaw = math.atan2(dy, dx)
+        error = v_yaw - yaw
+        if error < -math.pi:
+            error += 2*math.pi
+        elif error > math.pi:
+            error -= 2*math.pi
+        error = abs(error)
+        if error > math.pi/2:
+            ratio = -1
+
+        return ratio * math.sqrt((dx/dt)**2 + (dy/dt)**2)
+    
+
+class DifferentialCircleGeomery:
+    def __init__(self, state, radius=0.3) -> None:
+        self._radius = radius
+        self._position = (state[0], state[1], state[2])
+    
+    def equiv_rep(self):
+        pass
+    
+    def get_plot_patch(self, state):
+        self._region.center = state[0:2]
+        return Circle(self._position, self._radius, fill=False, color="red")
 
 class DifferentialCarSystem(System):
     def get_state(self):
+        return self._state
+    
+    def get_position(self):
         return self._state._x
 
+    def get_velocity(self):
+        return self._state.velocity(self._simu_time)
+
+    def get_dynamics(self):
+        return self._dynamics
+
     def update(self, unew):
-        xnew = self._dynamics.forward_dynamics(self.get_state(), unew, 0.1)
+        xnew = self._dynamics.forward_dynamics(self.get_position(), unew, self._simu_time)
+        self._state._last_x = copy(self._state._x)
         self._state._x = xnew
         self._time += 0.1
 

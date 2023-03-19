@@ -1,6 +1,23 @@
 # Obstacle Formulation and Nonlinear Control
 Perception, Planner and Controller
 
+# Execution
+
+## Path Planning and Trajectory Generation
+
+### A* + Spline
+```bash
+# Use A* find a path and Spline to interpolate the path
+python test/gridmap_astar.py
+```
+
+### Motion Planning
+```bash
+# Use mpc to control a differential drive model
+python test/motion_planning.py
+```
+
+
 # Reference
 
 ## Path Planning and Trajectory Optimization

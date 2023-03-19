@@ -5,7 +5,7 @@ except IndexError:
     pass
 
 from envs.gridmap import OccupancyGridMap
-from planning.path_generator.astar import a_star
+from planning.path_generator.astar import *
 from planning.trajectory_generator.spline_interpolate import *
 from utils.util import *
 
@@ -63,7 +63,7 @@ class PathManager:
         else:
             # plot start and goal points over the map (in pixels)
             start_node_px = self._map.get_index_from_coordinates(self._start_node[0], self._start_node[1])
-            goal_node_px = self._map.get_index_from_coordinates(self._goal_node[0], self._goal_node[1])
+            goal_node_px = self._map.get_index_from_coordinates(self._end_node[0], self._end_node[1])
 
             plt.plot(start_node_px[0], start_node_px[1], 'ro')
             plt.plot(goal_node_px[0], goal_node_px[1], 'go')
