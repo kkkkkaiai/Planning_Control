@@ -107,15 +107,15 @@ def calc_ref_trajectory_in_T_step(robot, controller, ref_path, NX=3, dt=0.1, d_d
     state, vel = robot.get_position(), robot.get_velocity()
     T = controller.get_horizon()
     noninal_T = T+1
-    z_ref = np.zeros((NX, noninal_T))
+    traj_ref = np.zeros((NX, noninal_T))
     length = ref_path.length
     ind, _ = ref_path.nearest_index(state)
 
-    z_ref[0, 0] = ref_path.cx[ind]
-    z_ref[1, 0] = ref_path.cy[ind]
-    z_ref[2, 0] = ref_path.cyaw[ind]
+    traj_ref[0, 0] = ref_path.cx[ind]
+    traj_ref[1, 0] = ref_path.cy[ind]
+    traj_ref[2, 0] = ref_path.cyaw[ind]
 
-    dist_move = 0.1
+    dist_move = 0.05
 
     for i in range(1, noninal_T):
         dist_move += abs(vel) * dt
@@ -123,8 +123,8 @@ def calc_ref_trajectory_in_T_step(robot, controller, ref_path, NX=3, dt=0.1, d_d
         ind_move = int(round(dist_move / d_dist))
         index = min(ind + ind_move, length - 1)
 
-        z_ref[0, i] = ref_path.cx[index]
-        z_ref[1, i] = ref_path.cy[index]
-        z_ref[2, i] = ref_path.cyaw[index]
+        traj_ref[0, i] = ref_path.cx[index]
+        traj_ref[1, i] = ref_path.cy[index]
+        traj_ref[2, i] = ref_path.cyaw[index]
 
-    return z_ref
+    return np.asarray(traj_ref)

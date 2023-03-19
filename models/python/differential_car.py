@@ -76,13 +76,18 @@ class DifferentialCircleGeomery:
     def __init__(self, state, radius=0.3) -> None:
         self._radius = radius
         self._position = (state[0], state[1], state[2])
-    
+        self._circle = None
+
     def equiv_rep(self):
         pass
     
-    def get_plot_patch(self, state):
-        self._region.center = state[0:2]
-        return Circle(self._position, self._radius, fill=False, color="red")
+    def get_plot_patch(self, position, resolusion):
+        if self._circle is None:
+            self._circle = Circle((position[0]/resolusion, position[1]/resolusion), \
+                                   self._radius/resolusion, fill=False, color="red")
+        else:
+            self._circle.set_center((position[0]/resolusion, position[1]/resolusion))
+        return self._circle
 
 class DifferentialCarSystem(System):
     def get_state(self):
@@ -96,6 +101,9 @@ class DifferentialCarSystem(System):
 
     def get_dynamics(self):
         return self._dynamics
+
+    def update_plot(self, resolusion=1):
+        return self._geometry.get_plot_patch(self.get_position(), resolusion)
 
     def update(self, unew):
         xnew = self._dynamics.forward_dynamics(self.get_position(), unew, self._simu_time)

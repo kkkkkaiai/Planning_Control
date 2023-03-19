@@ -1,5 +1,7 @@
 """
-@author: Kai Chen
+author: Kai CHEN
+mail: chenkai0130@outlook.com
+license: MIT
 """
 from abc import ABCMeta
 

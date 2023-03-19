@@ -1,3 +1,8 @@
+"""
+author: Kai CHEN
+mail: chenkai0130@outlook.com
+license: MIT
+"""
 import os, sys
 try:
     sys.path.append(os.getcwd())
@@ -44,13 +49,13 @@ class PathManager:
     def is_path_found(self):
         return self._path is not None
     
-    def spline_interpolate(self, path=None, ds=0.2):
+    def spline_interpolate(self, path=None, ds=0.1):
         if path is None:
             path = self._path
-        cx, cy, cyaw, ck, s = calc_spline_course(path[:, 0], path[:, 1], ds=ds)
+        cx, cy, cyaw, ck, s = calc_spline_course(path[:, 0]*self._resolution, path[:, 1]*self._resolution, ds=ds)
         self._sp = calc_speed_profile(cx, cy, cyaw, 10)
         self._ref_path = PATH(cx, cy, cyaw, ck)
-        print('Path length: ', len(self._path), 'Interpolated path length: ', self._ref_path.length)
+        print('Path length: ', len(path), 'Interpolated path length: ', self._ref_path.length)
 
         return self._ref_path, self._sp
 
@@ -72,7 +77,9 @@ class PathManager:
     def plot_interpolated_path(self):
         try:
             if self._ref_path is not None:
-                plot_path(np.array([self._ref_path.cx, self._ref_path.cy]).T, color='cyan', label='interpolated path')
+
+                plot_path(np.array([np.array(self._ref_path.cx)/self._resolution, np.array(self._ref_path.cy)/self._resolution]).T, \
+                          color='cyan', label='interpolated path')
         except:
             print('Not do interpolation yet, please call spline_interpolate() first')
 

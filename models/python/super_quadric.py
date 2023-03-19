@@ -1,5 +1,7 @@
 """
-@author: Sipu Ruan, Kai Chen
+author: Kai CHEN
+mail: chenkai0130@outlook.com
+license: MIT
 """
 
 import numpy as np

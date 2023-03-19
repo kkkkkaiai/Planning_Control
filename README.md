@@ -1,5 +1,5 @@
-# Obstacle Formulation and Nonlinear Control
-Perception, Planner and Controller
+# Path Planning and Motion Control
+Perception, Planning and Controlling
 
 # Execution
 
