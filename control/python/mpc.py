@@ -8,10 +8,10 @@ class NmpcOptimizerParam:
     def __init__(self) -> None:
         self.horizon = 10
         self.cbf_horizon = 6
-        self.mat_Q = np.diag([1, 1, 1])
-        self.mat_R = np.diag([1, 1])
-        self.mat_Rd = np.diag([1, 1])
-        self.mat_Jerk = np.diag([1, 1])
+        self.mat_Q = np.diag([1, 1, 2])
+        self.mat_R = np.diag([1, 0.1])
+        self.mat_Rd = np.diag([1, 0.1])
+        self.mat_Jerk = np.diag([1, 0.1])
         self.terminal_weight = 10
         self.magin_dist = 0.3
 

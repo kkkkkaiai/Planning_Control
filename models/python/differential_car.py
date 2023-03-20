@@ -103,6 +103,9 @@ class DifferentialCarSystem(System):
         return self._dynamics
 
     def update_plot(self, resolusion=1):
+        '''
+        replot the robot's position
+        '''
         return self._geometry.get_plot_patch(self.get_position(), resolusion)
 
     def update(self, unew):

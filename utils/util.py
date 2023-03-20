@@ -115,11 +115,10 @@ def calc_ref_trajectory_in_T_step(robot, controller, ref_path, NX=3, dt=0.1, d_d
     traj_ref[1, 0] = ref_path.cy[ind]
     traj_ref[2, 0] = ref_path.cyaw[ind]
 
-    dist_move = 0.05
+    dist_move = d_dist
 
     for i in range(1, noninal_T):
         dist_move += abs(vel) * dt
-
         ind_move = int(round(dist_move / d_dist))
         index = min(ind + ind_move, length - 1)
 

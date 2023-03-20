@@ -1,6 +1,12 @@
 # Path Planning and Motion Control
 Perception, Planning and Controlling
 
+# Prerequisite
+
+```bash
+conda install -c conda-forge ffmpeg
+```
+
 # Execution
 
 ## Path Planning and Trajectory Generation

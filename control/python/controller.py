@@ -14,6 +14,12 @@ class NmpcController:
         self._opt_sol = self._optimizer.solve_nlp()
         return self._opt_sol.value(self._optimizer._variables["u"][:, 0])
     
+    def get_optimal_trajectory(self):
+        if self._opt_sol:
+            return self._opt_sol.value(self._optimizer._variables["x"])
+        else:
+            raise Exception("No solution found yet")
+    
     def logging(self, logger):
         logger._xtrajs.append(self._opt_sol.value(self._optimizer._variables["x"]).T)
         logger._utrajs.append(self._opt_sol.value(self._optimizer._variables["u"]).T)
