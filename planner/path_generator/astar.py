@@ -4,7 +4,7 @@ try:
 except IndexError:
     pass
 from utils.util import *
-from planning.path_generator.path import PATH
+from planner.path_generator.path import PATH
 from heapq import heappush, heappop
 
 def a_star(start_m, goal_m, gmap, movement='8N', occupancy_cost_factor=3):

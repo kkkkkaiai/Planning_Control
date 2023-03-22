@@ -10,8 +10,8 @@ except IndexError:
     pass
 
 from envs.gridmap import OccupancyGridMap
-from planning.path_generator.astar import *
-from planning.trajectory_generator.spline_interpolate import *
+from planner.path_generator.astar import *
+from planner.trajectory_generator.spline_interpolate import *
 from utils.util import *
 
 class PathManager:

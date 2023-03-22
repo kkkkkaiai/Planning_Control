@@ -4,7 +4,14 @@ Perception, Planning and Controlling
 # Prerequisite
 
 ```bash
+# 1.  Part 1
+# 1.1 for conda environment
 conda install -c conda-forge ffmpeg
+# 1.2 for python environment
+pip install ffmpeg-python
+
+# 2. Part 2
+pip install pypng casadi
 ```
 
 # Execution
@@ -21,6 +28,12 @@ python test/gridmap_astar.py
 ```bash
 # Use mpc to control a differential drive model
 python test/motion_planning.py
+```
+
+### Map Generation
+```bash
+# Test the circle obstacle and laser sensor detection
+python envs/shapemap.py
 ```
 
 
@@ -49,16 +62,20 @@ https://github.com/xinjie-liu/SafeMPC_ObstacleAvoidance
 https://github.com/jaidevshriram/Robotics-Navigation  
 https://github.com/Vassil17/Safe_Nonholonomic_MPC  
 https://github.com/helgeanl/GP-MPC  
+https://github.com/xinjie-liu/SafeMPC_ObstacleAvoidance  
+https://github.com/epfl-lasa/dynamic_obstacle_avoidance*  
+https://github.com/libai1943/CartesianPlanner*  
 
+#### Chance-Constrained
+https://github.com/StanfordASL/ccscp    
 
 ### CBF
 https://github.com/HybridRobotics/cbf  
 
 ## Environment Perception
-
 ### TSDF, ESDF  
 https://github.com/nvidia-isaac/nvblox  
-### large convex polytopes  
+### Large convex polytopes  
 https://github.com/StarryN/Galaxy  
 
 ## Mobile Manipulator

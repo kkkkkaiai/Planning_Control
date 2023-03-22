@@ -1,5 +1,5 @@
 import numpy as np
-from control.python.mpc import NmpcOptimizer, NmpcOptimizerParam
+from controller.python.mpc import NmpcOptimizer, NmpcOptimizerParam
 
 class NmpcController:
     def __init__(self, dynamic, opt_param=NmpcOptimizerParam()) -> None:

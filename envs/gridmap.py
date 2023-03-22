@@ -1,3 +1,8 @@
+'''
+Reference: https://github.com/richardos/occupancy-grid-a-star
+thanks to richardos
+'''
+
 import numpy
 import matplotlib.pyplot as plt
 import sys, os

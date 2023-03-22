@@ -19,9 +19,9 @@ from models.python.differential_car import (
 import numpy as np
 import matplotlib.pyplot as plt
 from gridmap_astar import PathManager
-from planning.path_generator.astar import *
-from planning.trajectory_generator.spline_interpolate import *
-from control.python.controller import *
+from planner.path_generator.astar import *
+from planner.trajectory_generator.spline_interpolate import *
+from controller.python.controller import *
 from utils.util import calc_ref_trajectory_in_T_step
 from matplotlib.animation import FFMpegWriter
 
