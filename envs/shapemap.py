@@ -120,6 +120,7 @@ def test():
 
     plt.axis([-2.5, 2.5, -1, 7])
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.tight_layout()
     plt.show()
 
 if __name__ == '__main__':

@@ -92,4 +92,5 @@ if __name__ == '__main__':
     pM.plot_interpolated_path()
     pM.plot_path()
     plt.legend()
+    plt.tight_layout()
     plt.show()

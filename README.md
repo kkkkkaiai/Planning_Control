@@ -23,19 +23,21 @@ pip install pypng casadi
 # Use A* find a path and Spline to interpolate the path
 python test/gridmap_astar.py
 ```
+<img src="./results/gridmap_astar_spline.png" style="zoom:70%" />
 
 ### Motion Planning
 ```bash
 # Use mpc to control a differential drive model
 python test/motion_planning.py
 ```
+<img src="./results/motion_planning.png" style="zoom:70%" />
 
 ### Map Generation
 ```bash
 # Test the circle obstacle and laser sensor detection
 python envs/shapemap.py
 ```
-
+<img src="./results/circle_obstacles_laser_detector.png" style="zoom:50%" />
 
 # Reference
 

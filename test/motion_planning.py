@@ -82,6 +82,7 @@ if __name__ == '__main__':
                                         [exit(0) if event.key == 'escape' else None])
             plt.pause(0.0001) # pause a bit so that plots are updated
             plt.axis('off')
+            plt.tight_layout()
             writer.grab_frame()
 
 
