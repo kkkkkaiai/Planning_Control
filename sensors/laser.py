@@ -10,8 +10,8 @@ from copy import copy
 import numpy as np
 
 class Laser(Sensor):
-    def __init__(self, ix, iu, time=0, beams=64) -> None:
-        super().__init__(ix, iu, time)
+    def __init__(self, time=0, beams=64) -> None:
+        super().__init__(time)
         self._dtheta = 2*np.pi/beams# delta theta between two beams
         self._num_sensor = int(beams+1) # number of beams
         # corresponding angle of each beam
@@ -52,8 +52,9 @@ class Laser(Sensor):
         obs = []
         point = []
 
-        point_mat = np.zeros((self._N_laser, self._N_theta, 3))
+        point_mat = np.zeros((self._N_laser, self._N_theta, 3)) # 300 65
         theta_sensor_with_yaw = list(map(lambda x: x+yaw, self._theta_sensor))
+
         for idx_point in range(1, self._N_laser+1) :
             r = round(idx_point * self._d_laser, 4)
             point_mat[idx_point-1, :, 0] = x[0] + r * np.cos(theta_sensor_with_yaw)
@@ -68,6 +69,7 @@ class Laser(Sensor):
         obs = self._d_laser * np.ones(len(theta_sensor_with_yaw))
         point = np.zeros((len(theta_sensor_with_yaw), 2))
         flag_not_meet_obstacle = np.ones(len(theta_sensor_with_yaw))
+
         for idx_point in range(1, self._N_laser+1) :
             # r = round(idx_point * self.d_laser,4)
             point[:,0][flag_not_meet_obstacle==True] = point_mat[idx_point-1,:,0][flag_not_meet_obstacle==True]
