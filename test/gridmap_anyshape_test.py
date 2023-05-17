@@ -157,6 +157,7 @@ if __name__ == '__main__':
     
         decomp = SeedDecomp2D(np.array(robot_c)/resolusion)
         decomp.set_obs(de_obs['point'])
+        print(de_obs['point'])
         decomp.set_local_bbox(bbox)
         decomp.dilate(1.)
         poly = decomp.get_polyhedron()

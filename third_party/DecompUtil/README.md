@@ -7,6 +7,9 @@ cmake .. \
 -DPYTHON_LIBRARY_DIR="/usr/lib/python3/dist-packages/" \
 -DPYTHON_EXECUTABLE="/usr/bin/python3.8"
 /usr/bin/python3.8
+
+make -j6
+make install
 ```
 
 

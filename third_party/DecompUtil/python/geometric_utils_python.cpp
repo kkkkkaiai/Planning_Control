@@ -13,10 +13,11 @@
 
 namespace py = pybind11;
 
-
 template<int Dim>
 void geometric_utils_all(py::module &m){
   m.def("cal_vertices", py::overload_cast<const Polyhedron2D&>(&cal_vertices));
+  m.def("cal_convex_hull", py::overload_cast<const vec_Vec2f&>(&cal_convex_hull));
+  m.def("get_convex_hull", py::overload_cast<const vec_Vec2f&>(&get_convex_hull));
 }
 
 namespace decomp_util{
