@@ -11,7 +11,7 @@ class GradientDescentOptimizer
 {
 
 public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW; // 支持向量化操作
 
   typedef double (*objfunDef)(const Eigen::VectorXd &x, Eigen::VectorXd &grad, bool &force_return, void *data);
   enum RESULT
@@ -23,6 +23,12 @@ public:
   };
 
   GradientDescentOptimizer(int v_num, objfunDef objf, void *f_data)
+  /*
+  Parameters:
+    v_num: number of variables
+    objf: objective function
+    f_data: data for objective function
+  */
   {
     variable_num_ = v_num;
     objfun_ = objf;

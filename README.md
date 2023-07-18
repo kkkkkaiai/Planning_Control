@@ -39,6 +39,14 @@ python envs/shapemap.py
 ```
 <img src="./results/circle_obstacles_laser_detector.png" style="zoom:50%" />
 
+
+### Convex Area Decomposition
+```bash
+# Test decomp_utils of pybind version
+python test/gridmap_anyshape_test.py
+```
+<img src="./results/convex_decomp.png" style="zoom:100%" />
+
 # Reference
 
 ## Path Planning and Trajectory Optimization

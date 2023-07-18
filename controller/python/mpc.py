@@ -97,6 +97,7 @@ class NmpcOptimizer:
             x_diff = self._variables["x"][:, i] - reference_trajectory[i, :]
             self._costs["reference_trajectory_tracking"] += ca.mtimes(x_diff.T, ca.mtimes(self._opt_param.mat_Q, x_diff))
         x_diff = self._variables["x"][:, -1] - reference_trajectory[-1, :]
+  
         # terminal cost
         self._costs["reference_trajectory_tracking"] += self._opt_param.terminal_weight * ca.mtimes(
             x_diff.T, ca.mtimes(self._opt_param.mat_Q, x_diff)
@@ -106,15 +107,15 @@ class NmpcOptimizer:
         self._costs["input_stage"] = 0
         for i in range(param.horizon):
             self._costs["input_stage"] += ca.mtimes(
-                self.variables["u"][:, i].T, ca.mtimes(param.mat_R, self.variables["u"][:, i])
+                self._variables["u"][:, i].T, ca.mtimes(param.mat_R, self._variables["u"][:, i])
             )
 
     def add_input_smoothness_cost(self, param):
         self._costs["input_smoothness"] = 0
         for i in range(param.horizon - 1):
             self._costs["input_smoothness"] += ca.mtimes(
-                (self.variables["u"][:, i + 1] - self.variables["u"][:, i]).T,
-                ca.mtimes(param.mat_dR, (self.variables["u"][:, i + 1] - self.variables["u"][:, i])),
+                (self._variables["u"][:, i + 1] - self._variables["u"][:, i]).T,
+                ca.mtimes(param.mat_Rd, (self._variables["u"][:, i + 1] - self._variables["u"][:, i])),
             )
 
     def setup(self, system, ref_traj):
@@ -125,6 +126,9 @@ class NmpcOptimizer:
         self.add_input_constraint()
         self.add_dynamics_constraint()
         self.add_reference_trajectory_tracking_cost(ref_traj)
+        self.add_input_stage_cost(self._opt_param)
+        self.add_input_smoothness_cost(self._opt_param)
+    
 
 
     def solve_nlp(self):

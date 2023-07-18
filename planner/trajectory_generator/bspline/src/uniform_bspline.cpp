@@ -5,6 +5,12 @@ namespace ego_planner
 
   UniformBspline::UniformBspline(const Eigen::MatrixXd &points, const int &order,
                                  const double &interval)
+  /*
+  Parameters:
+    points: control points
+    order: order of bspline
+    interval: interval of knot vector
+  */
   {
     setUniformBspline(points, order, interval);
   }
@@ -58,6 +64,10 @@ namespace ego_planner
   Eigen::MatrixXd UniformBspline::getControlPoint() { return control_points_; }
 
   Eigen::VectorXd UniformBspline::evaluateDeBoor(const double &u)
+  /*
+  Functions:
+    evaluate bspline at u
+  */
   {
 
     double ub = min(max(u_(p_), u), u_(m_ - p_));
