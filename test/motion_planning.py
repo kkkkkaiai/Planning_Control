@@ -55,7 +55,6 @@ if __name__ == '__main__':
     metadata = dict(title='test', artist='Matplotlib',comment='test')
     writer = FFMpegWriter(fps=10, metadata=metadata)
 
-
     dis = np.linalg.norm(np.array(end_pos) - np.array(start_pos))
     with writer.saving(fig, 'results/' + 'test.mp4', 300):
         achieved = False

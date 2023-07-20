@@ -226,18 +226,24 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
         dy = cy[i + 1] - cy[i]
 
         move_direction = math.atan2(dy, dx)
+        ratio = 1.0
 
         if dx != 0.0 and dy != 0.0:
             dangle = abs(pi_2_pi(move_direction - cyaw[i]))
             if dangle >= math.pi / 4.0:
-                direction = -1.0
+                direction = 1.0
             else:
                 direction = 1.0
 
+            if dangle > 0.05:
+                # adjust target_speed based on the curvature
+                print(dangle)
+                ratio = np.exp((dangle - 0.05)/2)
+
         if direction != 1.0:
-            speed_profile[i] = - target_speed
+            speed_profile[i] = - target_speed / ratio
         else:
-            speed_profile[i] = target_speed
+            speed_profile[i] = target_speed / ratio
 
     speed_profile[-1] = 0.0
 

@@ -20,7 +20,7 @@ class Laser(Sensor):
         self._theta_sensor = [i*self._dtheta for i in range(self._num_sensor)]
         self._N_theta = len(self._theta_sensor) # number of thetas/laser beams' angles
         self._N_laser = 100 # detection range's resolution of one line, the larger the more accurate
-        self._length_laser = 2 # laser's detection range
+        self._length_laser = 4 # laser's detection range
         self._d_laser = self._length_laser / self._N_laser # laser resolution
         self._gridmap = None
         self._mapres = None
