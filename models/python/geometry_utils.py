@@ -15,10 +15,17 @@ import casadi as ca
 def exp_func(x, epsilon):
     return np.sign(x) * (np.abs(x) ** epsilon)
 
+def exp_func_ca(x, epsilon):
+    return ca.sign(x) * (ca.fabs(x) ** epsilon)
 
 def rotate_func(phi=0, is_radian=False):
     if not is_radian:
         phi = np.deg2rad(phi)
+    matrix = np.array([[np.cos(phi), -np.sin(phi)],
+                      [np.sin(phi), np.cos(phi)]])
+    return matrix
+
+def rotate_func_ca(phi=0):
     matrix = np.array([[np.cos(phi), -np.sin(phi)],
                       [np.sin(phi), np.cos(phi)]])
     return matrix
@@ -131,6 +138,9 @@ def get_dist_region_to_region(mat_A1, vec_b1, mat_A2, vec_b2):
 
 
 class SuperEllipse():
+    # the formula of superellipse is (x/a)^n + (y/b)^n = 1
+    # the polar coordinate of superellipse is r = (cos(theta))^(-1/n) + (sin(theta))^(-1/n)
+    # the parametric equation of superellipse is x = a*cos(theta)^n, y = b*sin(theta)^n
     def __init__(self, a=None, eps=None, tc=None, phi=None, num=20):
         # Shape
         if a is None:
@@ -160,6 +170,40 @@ class SuperEllipse():
         xy_new = xy.T + np.array(self.tc).T
 
         return np.array(xy_new.T)
+    
+    def calc_distance(self, x, y):
+        # transform the point to the local coordinate
+        xy = np.array([x, y])
+        xy = rotate_func(self.phi, True).T.dot(xy - np.array(self.tc).T)
+        # calculate the distance between the given point and the superellipse
+        dist = np.linalg.norm(np.array([xy[0], xy[1]]))
+        theta = np.arctan2(xy[1], xy[0])
+        # calculate the point on the superellipse with the same angle
+        xy_new = np.array([self.a[0]*exp_func(np.cos(theta), self.eps),
+                            self.a[1]*exp_func(np.sin(theta), self.eps)])
+        dist_xy = np.linalg.norm(xy_new)
+        xy_new = rotate_func(self.phi, True).dot(xy_new)
+        xy_new = xy_new + np.array(self.tc).T
+
+        dist = dist - dist_xy
+
+        return dist, xy_new
+    
+    def calc_distance_ca(self, x, y):
+        # transform the point to the local coordinate
+        xy = ca.vertcat(x, y)
+        xy = rotate_func_ca(self.phi).T @ (xy - ca.vertcat(self.tc[0], self.tc[1]))
+        # calculate the distance between the given point and the superellipse
+        dist = ca.norm_2(ca.vertcat(xy[0], xy[1]))
+        # calculate the point on the superellipse with the same angle
+        xy_new = ca.vertcat(self.a[0]*exp_func_ca(ca.cos(ca.atan2(xy[1], xy[0])), self.eps),
+                            self.a[1]*exp_func_ca(ca.sin(ca.atan2(xy[1], xy[0])), self.eps))
+        # xy_new = xy_new + ca.vertcat(self.tc[0], self.tc[1])
+        dist_xy = ca.norm_2(xy_new)
+        # print(dist_xy)
+        dist = dist - 0.01*dist_xy
+
+        return dist, xy_new
 
     def update_state(self, pos, phi):
         self.tc = pos
