@@ -26,8 +26,13 @@ def rotate_func(phi=0, is_radian=False):
     return matrix
 
 def rotate_func_ca(phi=0):
-    matrix = np.array([[np.cos(phi), -np.sin(phi)],
-                      [np.sin(phi), np.cos(phi)]])
+    # generate the rotation matrix
+    matrix = ca.MX.zeros(2, 2)
+    matrix[0, 0] = ca.cos(phi)
+    matrix[0, 1] = -ca.sin(phi)
+    matrix[1, 0] = ca.sin(phi)
+    matrix[1, 1] = ca.cos(phi)
+
     return matrix
 
 
@@ -190,17 +195,18 @@ class SuperEllipse():
     
     def calc_distance_ca(self, x, y):
         # transform the point to the local coordinate
-        xy = ca.vertcat(x, y)
-        xy = rotate_func_ca(self.phi).T @ (xy - ca.vertcat(self.tc[0], self.tc[1]))
-        # calculate the distance between the given point and the superellipse
-        dist = ca.norm_2(ca.vertcat(xy[0], xy[1]))
+        xy = ca.vertcat(x-self.tc[0], y-self.tc[1])
+        dist = ca.norm_2(xy)
+
         # calculate the point on the superellipse with the same angle
-        xy_new = ca.vertcat(self.a[0]*exp_func_ca(ca.cos(ca.atan2(xy[1], xy[0])), self.eps),
-                            self.a[1]*exp_func_ca(ca.sin(ca.atan2(xy[1], xy[0])), self.eps))
-        # xy_new = xy_new + ca.vertcat(self.tc[0], self.tc[1])
+        theta = ca.atan2(xy[1], xy[0]) - self.phi
+        xy_new = ca.vertcat((ca.fabs(ca.cos(theta)/self.a[0])**self.eps + ca.fabs(ca.sin(theta)/self.a[1])**self.eps)**(-1/self.eps))
+        xy_new = ca.vertcat(xy_new*ca.cos(theta), xy_new*ca.sin(theta))
         dist_xy = ca.norm_2(xy_new)
-        # print(dist_xy)
-        dist = dist - 0.01*dist_xy
+
+        xy_new = rotate_func_ca(self.phi) @ (xy_new)
+        xy_new = xy_new + ca.vertcat(self.tc[0], self.tc[1])
+        dist = dist - dist_xy
 
         return dist, xy_new
 

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 # generate two obstacles(obstacle is a superellipse)
 # test1
 obs_center = np.array([[4, 0], [5, 0], [7, 0]])
-obs_param = np.array([[0.6, 0.4], [0.4, 0.25], [0.2, 0.15]])
+obs_param = np.array([[0.6, 0.4], [0.4, 0.8], [0.2, 0.15]])
 sample_x = np.linspace(3, 7.5, 1000)
 
 # test2

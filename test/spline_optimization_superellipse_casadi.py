@@ -51,19 +51,19 @@ def calc_distance_to_superellipse_surface(x, y, obs_instance):
 def spline_opti():
     start_point = 0
     end_point = 10
-    number = 100
+    number = 120
     # generate the reference path
     x = np.linspace(start_point, end_point, number)
-    y = np.repeat(0.05, len(x))
+    y = np.repeat(0.00, len(x))
     points = np.array([x, y])
 
     # generate two obstacles(obstacle is a superellipse)
-    obs_center = np.array([[2, 0.00], [5, 0.0], [8, 0.0]])
-    obs_param = np.array([[0.5, 0.4], [0.4, 0.3], [0.25, 0.15]])
+    obs_center = np.array([[3, 0.00], [4.5, 0.0], [6, 0.0], [8, 0.0]])
+    obs_param = np.array([[0.6, 0.45], [0.45, 0.3], [0.8, 0.8], [0.3, 0.2]])
 
     obs_instance = []
     for i in range(len(obs_center)):
-        obs = SuperEllipse(obs_param[i], 0.35, obs_center[i], 0.7, 20)
+        obs = SuperEllipse(obs_param[i], 4.0, obs_center[i], 2.7, 20)
         obs_instance.append(obs)
 
     # plot the superellipse
@@ -90,7 +90,7 @@ def spline_opti():
     for i in range(len(x)):
         for j in range(len(obs_center)):
             dist, xy = obs_instance[j].calc_distance_ca(x_opt[0, i], x_opt[1, i])
-            obs_term += ca.exp(-dist)
+            obs_term += ca.exp(-10*dist)
     
     # guidance term(penalize the distance between the path and the reference path)
     # calculate the distance between the path and the reference path
@@ -105,18 +105,18 @@ def spline_opti():
         velocity_term += (x_opt[:, i+1] - x_opt[:, i]) * (x_opt[:, i+1] - x_opt[:, i])
 
     # objective function(the term must be scalar)
-    opti.minimize(0 * ca.sum1(smooth_term) + 1*ca.sum1(guidance_term) + 1.5*ca.sum1(obs_term) + 1*ca.sum1(velocity_term))
+    opti.minimize(0.5 * ca.sum1(smooth_term) + 0.05 * ca.sum1(guidance_term) + 0.5* ca.sum1(obs_term) + 0.5*ca.sum1(velocity_term))
 
     # constraints
-    # opti.subject_to(x_opt[:, 0] == np.array([0, 0]))
+    opti.subject_to(x_opt[:, 0] == points[:, 0])
     # opti.subject_to(x_opt[:, -1] == np.array([10, 0]))
 
     # add random bias on the initial guess of y
-    # randon_init = np.random.rand(2, len(x))
+    randon_init = np.random.rand(2, len(x))
     opti.set_initial(x_opt, points)
 
     # solve the problem
-    opti.solver('ipopt', {'expand': True, 'ipopt.max_iter': 10000, 'ipopt.print_level': 4, 
+    opti.solver('ipopt', {'expand': True, 'ipopt.max_iter': 1000, 'ipopt.print_level': 4, 
                           'ipopt.acceptable_tol': 1e-6, 'ipopt.acceptable_obj_change_tol': 1e-5, 
                           'print_time':1, 'verbose': False})
     sol = opti.solve()
