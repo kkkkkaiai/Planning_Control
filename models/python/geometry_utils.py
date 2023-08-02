@@ -138,8 +138,7 @@ def get_dist_region_to_region(mat_A1, vec_b1, mat_A2, vec_b2):
 
 
 class SuperEllipse():
-    # the formula of superellipse is (x/a)^n + (y/b)^n = 1
-    # the polar coordinate of superellipse is r = (cos(theta))^(-1/n) + (sin(theta))^(-1/n)
+    # the polar coordinate of superellipse is r = ((cos(theta)/a)^(n) + (sin(theta)/b)^(n))^(-1/n), n is the shape parameter
     # the parametric equation of superellipse is x = a*cos(theta)^n, y = b*sin(theta)^n
     def __init__(self, a=None, eps=None, tc=None, phi=None, num=20):
         # Shape
@@ -164,8 +163,9 @@ class SuperEllipse():
 
     def get_points(self, is_radian=True):
         # the function is
-        xy = np.array([self.a[0]*exp_func(np.cos(self.plot_theta), self.eps),
-                      self.a[1]*exp_func(np.sin(self.plot_theta), self.eps)])
+        xy = np.array((np.abs(np.cos(self.plot_theta)/self.a[0])**self.eps + np.abs(np.sin(self.plot_theta)/self.a[1])**self.eps)**(-1/self.eps))
+        xy = np.array([xy*np.cos(self.plot_theta), xy*np.sin(self.plot_theta)])
+
         xy = rotate_func(self.phi, is_radian).dot(xy)
         xy_new = xy.T + np.array(self.tc).T
 
@@ -173,18 +173,17 @@ class SuperEllipse():
     
     def calc_distance(self, x, y):
         # transform the point to the local coordinate
-        xy = np.array([x, y])
-        xy = rotate_func(self.phi, True).T.dot(xy - np.array(self.tc).T)
-        # calculate the distance between the given point and the superellipse
-        dist = np.linalg.norm(np.array([xy[0], xy[1]]))
-        theta = np.arctan2(xy[1], xy[0])
-        # calculate the point on the superellipse with the same angle
-        xy_new = np.array([self.a[0]*exp_func(np.cos(theta), self.eps),
-                            self.a[1]*exp_func(np.sin(theta), self.eps)])
-        dist_xy = np.linalg.norm(xy_new)
-        xy_new = rotate_func(self.phi, True).dot(xy_new)
-        xy_new = xy_new + np.array(self.tc).T
+        xy = np.array([x-self.tc[0], y-self.tc[1]])
+        dist = np.linalg.norm(xy)
 
+        # calculate the point on the superellipse with the same angle
+        theta = np.arctan2(xy[1], xy[0]) - self.phi
+        xy_new = np.array((np.abs(np.cos(theta)/self.a[0])**self.eps + np.abs(np.sin(theta)/self.a[1])**self.eps)**(-1/self.eps))
+        xy_new = np.array([xy_new*np.cos(theta), xy_new*np.sin(theta)])
+        dist_xy = np.linalg.norm(xy_new)
+
+        xy_new = rotate_func(self.phi, True).dot(xy_new)
+        xy_new = xy_new.T + np.array(self.tc).T
         dist = dist - dist_xy
 
         return dist, xy_new
