@@ -71,7 +71,7 @@ class Robot:
 
     def gen_occupancy_type(self):
         # robot is modeled as a superellipse
-        self.occ_manager = SuperEllipse([self.robot_width*0.55, self.robot_height*0.6], 0.35, self.robot_center_pos, self.robot_theta, 20)
+        self.occ_manager = SuperEllipse([self.robot_width*0.55, self.robot_height*0.6],4, self.robot_center_pos, self.robot_theta, 20)
 
     def update_state(self, state, theta, plot=False, ax=None, re=False):
         self.last_center_pos = self.robot_center_pos
