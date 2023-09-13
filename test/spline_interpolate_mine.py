@@ -10,6 +10,7 @@ import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import casadi as ca 
+import matplotlib as mpl
 
 class ScenarioGenerator:
     def __init__(self):
@@ -24,6 +25,8 @@ class ScenarioGenerator:
         self.max_jerk = 0.8
         self.min_acc = -1.0
         self.min_jerk = -0.8
+        self.max_w = 0.8
+        self.max_dw = 0.4
 
 
 class TrajData:
@@ -34,7 +37,7 @@ class TrajData:
 
     def resize(self, size):
         self.velocity = np.zeros(size)
-        self.position = np.zeros(size)
+        self.position = np.zeros((size,2))
         self.time = np.zeros(size)
 
 class VelocityFilter:
@@ -49,10 +52,9 @@ class VelocityFilter:
         t = 0.0
 
         for i in range(0, len(original_max_vels)-1):
-            dt = (position[i+1] - position[i])/original_max_vels[i]
+            dt = np.linalg.norm(position[i+1] - position[i])/original_max_vels[i]
             t += dt
-
-            self.traj_data.postiion[i] = position[i]
+            self.traj_data.position[i] = position[i]
             self.traj_data.velocity[i] = original_max_vels[i]
             self.traj_data.time[i] = t
         
@@ -82,10 +84,11 @@ class VelocityFilter:
 
         for i in range(1, len(original_vel)):
             max_dt = np.power(6.0*ds/j_max, 1.0/3.0) # (6*ds/j_max)**(1/3)
-            dt = np.min(ds/np.max(current_vel, 1.0e-6), max_dt)
+
+            dt = min(ds/max(current_vel, 1e-6), max_dt)
             
             if current_acc + j_max*dt >= a_max:
-                tmp_jerk = np.min((a_max - current_acc)/dt. j_max)
+                tmp_jerk = min((a_max - current_acc)/dt, j_max)
                 current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
                 current_acc = a_max
             else:
@@ -101,10 +104,12 @@ class VelocityFilter:
 
     def backward_jerk_filter(self, v0, a0, a_min, j_min, ds, original_vel, filtered_vels, filtered_accs):
         input_rev = copy.copy(original_vel)
-        input_rev.reverse()
+
+        input_rev = np.flip(input_rev)
         filtered_vels, filtered_accs = self.forward_jerk_filter(v0, np.abs(a0), np.abs(a_min), np.abs(j_min), ds, input_rev)
-        filtered_vels.reverse()
-        filtered_accs.reverse()
+        filtered_vels = np.flip(filtered_vels)
+        filtered_accs = np.flip(filtered_accs)
+
         for i in range(len(filtered_accs)):
             filtered_accs[i] = -filtered_accs[i]
 
@@ -130,9 +135,9 @@ class VelocityFilter:
     def smooth_velocity(self, ds, v0, a0, a_max, a_min, j_max, j_min, original_vel):
         forward_vels, forward_accs = self.forward_jerk_filter(v0, a0, a_max, j_max, ds, original_vel)
         backward_vels, backward_accs = self.backward_jerk_filter(v0, a0, a_min, j_min, ds, original_vel, forward_vels, forward_accs)
-        merge_filtered_velocity = self.merge_velocity(forward_vels, backward_vels)
+        merged_velocity = self.merge_filtered_velocity(forward_vels, backward_vels)
 
-        return merge_filtered_velocity
+        return merged_velocity
 
 
 # generate 5 random points
@@ -141,7 +146,6 @@ end_point = 10
 x = np.linspace(0, end_point, generate_num)
 y = np.random.rand(generate_num)*2
 points = np.array([x, y])
-print(points)
 
 # generate spline interpolation
 si = Spline2D(x, y)
@@ -156,10 +160,28 @@ for i_s in interpolate_points_index:
 scene_gen = ScenarioGenerator()
 max_vels = np.array([scene_gen.max_vel]*len(interpolate_points_index))
 
+# filter the velocity
+velocity_filter = VelocityFilter()
+velocity_filter.modify_maximum_veolicty(np.array(interpolate_points), max_vels)
 
-plt.plot(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1], 'b-')
+merged_velocity = velocity_filter.smooth_velocity(scene_gen.ds, scene_gen.v0, scene_gen.a0, scene_gen.max_acc, scene_gen.min_acc, scene_gen.max_jerk, scene_gen.min_jerk, max_vels)
+
+cmap = plt.cm.get_cmap('jet')
+normalize = plt.Normalize(vmin=min(merged_velocity), vmax=max(merged_velocity))
+
+print(merged_velocity.shape, cmap(merged_velocity).shape)
+plt.scatter(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1],  c=cmap(normalize(merged_velocity)))
+# display a colorbar with the given velocity data
+plt.colorbar(mpl.cm.ScalarMappable(norm=normalize, cmap=cmap), label='velocity')
+# plt.plot(points[0, :], points[1, :], 'ro')
+
+
+# plot the velocity in a new figure
+plt.figure()
+plt.plot(interpolate_points_index, merged_velocity)
+plt.axis('equal')
 
 # plot the points
-plt.plot(points[0, :], points[1, :], 'ro')
+
 plt.show()
 
