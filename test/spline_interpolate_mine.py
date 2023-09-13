@@ -88,6 +88,8 @@ class VelocityFilter:
             dt = min(ds/max(current_vel, 1e-6), max_dt)
             
             if current_acc + j_max*dt >= a_max:
+                # if the acceleration is larger than the maximum acceleration, 
+                # then the acceleration is limited by the maximum acceleration
                 tmp_jerk = min((a_max - current_acc)/dt, j_max)
                 current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
                 current_acc = a_max
@@ -144,20 +146,21 @@ class VelocityFilter:
 generate_num = 10
 end_point = 10
 x = np.linspace(0, end_point, generate_num)
-y = np.random.rand(generate_num)*2
+y = np.random.rand(generate_num)/2
 points = np.array([x, y])
 
 # generate spline interpolation
 si = Spline2D(x, y)
 interpolate_points = []
-ratio = 10
+ratio = 20
 
-interpolate_points_index = np.arange(0, si.s[-1], 0.05)
+interpolate_points_index = np.arange(0, si.s[-1], 1/ratio)
 
 for i_s in interpolate_points_index:
     interpolate_points.append(si.calc_position(i_s))
 
 scene_gen = ScenarioGenerator()
+scene_gen.ds = 1/ratio
 max_vels = np.array([scene_gen.max_vel]*len(interpolate_points_index))
 
 # filter the velocity
@@ -172,16 +175,26 @@ normalize = plt.Normalize(vmin=min(merged_velocity), vmax=max(merged_velocity))
 print(merged_velocity.shape, cmap(merged_velocity).shape)
 plt.scatter(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1],  c=cmap(normalize(merged_velocity)))
 # display a colorbar with the given velocity data
-plt.colorbar(mpl.cm.ScalarMappable(norm=normalize, cmap=cmap), label='velocity')
+plt.colorbar(mpl.cm.ScalarMappable(norm=normalize, cmap=cmap))
 # plt.plot(points[0, :], points[1, :], 'ro')
 
 
 # plot the velocity in a new figure
 plt.figure()
-plt.plot(interpolate_points_index, merged_velocity)
+plt.plot(interpolate_points_index, merged_velocity, label='velocity')
+
+# plot accelaration in every step
+accelaration = np.diff(merged_velocity)/scene_gen.ds
+plt.plot(interpolate_points_index[:-1], accelaration, label='accelaration')
+# plot max acc and min acc
+plt.plot(interpolate_points_index, [scene_gen.max_acc]*len(interpolate_points_index), label='max acc')
+plt.plot(interpolate_points_index, [scene_gen.min_acc]*len(interpolate_points_index), label='min acc')
+
+
+
 plt.axis('equal')
 
 # plot the points
-
+plt.legend()
 plt.show()
 
