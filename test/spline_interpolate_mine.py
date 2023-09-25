@@ -7,10 +7,15 @@ except IndexError:
 from planner.trajectory_generator.spline_interpolate import *
 import copy
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import casadi as ca 
 import matplotlib as mpl
+
+import casadi as ca
+import osqp
+from scipy import sparse
 
 V_expect = 0
 class ScenarioGenerator:
@@ -20,15 +25,17 @@ class ScenarioGenerator:
     def generateNormalScenario(self):
         self.v0 = 0.0
         self.a0 = 0.0
+        self.vg = 0.0
+        self.ag = 0.0
         self.ds = 0.1
         self.max_vel = 1.0
-        self.max_acc = 0.5
-        self.max_jerk = 0.3
-        self.min_acc = -0.5
-        self.min_jerk = -0.3
+        self.max_acc = 0.8
+        self.max_jerk = 0.4
+        self.min_acc = -0.8
+        self.min_jerk = -0.4
         self.max_w = 1.0
-        self.max_dw = 0.6
-        self.max_ddw = 0.3
+        self.max_dw = 0.5
+        self.max_ddw = 0.4
         self.min_dw = -self.max_w
         self.min_ddw = -self.max_dw
 
@@ -66,14 +73,12 @@ class VelocityFilter:
         self.w_max = 0.0
         self.dw_max = 0.0
 
-        for i in range(0, len(original_max_vels)-1):
-            dt = np.linalg.norm(position[i+1] - position[i])/original_max_vels[i]
-            t += dt
+        for i in range(0, len(original_max_vels)):
             self.traj_data.position[i] = position[i]
             self.traj_data.velocity[i] = original_max_vels[i]
-            self.traj_data.time[i] = t
+  
         
-    def forward_jerk_filter(self, v0, a0, a_max, j_max, ds, original_vel, curvature=None):
+    def forward_jerk_filter(self, v0, a0, a_max, j_max, ds, original_vel):
         def apply_limits(vel, acc, i):
             v_lim = original_vel[i]
             ep = 1.0e-5
@@ -100,44 +105,28 @@ class VelocityFilter:
         for i in range(1, len(original_vel)-1):
             # x = x0 + v0t + 1/2*a0*t^2 + 1/6*j0*t^3
             max_v_dt = np.power(6.0*ds/j_max, 1.0/3.0) # (6*ds/j_max)**(1/3)
-            global V_expect
 
             # calc the angle between the current point and the next point
-            acc = True
-            dt = 0
-            desired_v = 0
+            dt = min(ds/max(current_vel, 1e-6), max_v_dt) # velocity
 
-            if curvature is not None:
-                # desired_v = self.w_max/curvature[i-1]
-                # # max_w_dt = np.power(2.0*d_theta/self.dw_max, 2.0)
-                # if desired_v < current_vel:
-                #     acc = False
-
-                dt = min(ds/max(current_vel, 1e-6), max_v_dt, ds/max(V_expect[i-1], 1e-6)) # velocity
-                # print(ds/max(current_vel, 1e-6), ds/desired_v, max_v_dt)
+            if current_acc + j_max*dt >= a_max:
+                # if the acceleration is larger than the maximum acceleration, 
+                # then the acceleration is limited by the maximum acceleration
+                tmp_jerk = min((a_max - current_acc)/dt, j_max)
+                current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
+                current_acc = a_max
             else:
-                dt = min(ds/max(current_vel, 1e-6), max_v_dt, ds/max(V_expect[i-1], 1e-6)) # velocity
-            
-            print(ds/max(current_vel, 1e-6), max_v_dt, ds/max(V_expect[i-1], 1e-6))
-            if acc is True:
-                if current_acc + j_max*dt >= a_max:
-                    # if the acceleration is larger than the maximum acceleration, 
-                    # then the acceleration is limited by the maximum acceleration
-                    tmp_jerk = min((a_max - current_acc)/dt, j_max)
-                    current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
-                    current_acc = a_max
-                else:
-                    current_vel = current_vel + current_acc*dt + 0.5*j_max*dt*dt
-                    current_acc = current_acc + j_max*dt
-            else:
-                # if the acceleration is smaller than the minimum acceleration,
-                if current_acc + self.j_min*dt <= self.a_min:
-                    tmp_jerk = max((self.a_min - current_acc)/dt, self.j_min)
-                    current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
-                    current_acc = self.a_min
-                else:
-                    current_vel = current_vel + current_acc*dt + 0.5*self.a_min*dt*dt
-                    current_acc = current_acc + self.a_min*dt  
+                current_vel = current_vel + current_acc*dt + 0.5*j_max*dt*dt
+                current_acc = current_acc + j_max*dt
+            # else:
+            #     # if the acceleration is smaller than the minimum acceleration,
+            #     if current_acc + self.j_min*dt <= self.a_min:
+            #         tmp_jerk = max((self.a_min - current_acc)/dt, self.j_min)
+            #         current_vel = current_vel + current_acc*dt + 0.5*tmp_jerk*dt*dt
+            #         current_acc = self.a_min
+            #     else:
+            #         current_vel = current_vel + current_acc*dt + 0.5*self.a_min*dt*dt
+            #         current_acc = current_acc + self.a_min*dt  
 
             current_vel, current_acc = apply_limits(current_vel, current_acc, i)
 
@@ -161,7 +150,6 @@ class VelocityFilter:
 
     def merge_filtered_velocity(self, forward_vels, backward_vels):
         v0 = forward_vels[0]
-
         merged_vels = np.zeros(len(forward_vels))
         
         i = 0
@@ -176,7 +164,7 @@ class VelocityFilter:
 
         return merged_vels
 
-    def smooth_velocity(self, ds, v0, a0, a_max, a_min, j_max, j_min, w_max, dw_max, original_vel, curvature):
+    def smooth_velocity(self, ds, v0, a0, a_max, a_min, j_max, j_min, w_max, dw_max, original_vel):
         self.ds = ds
         self.v0 = v0
         self.a0 = a0
@@ -187,11 +175,108 @@ class VelocityFilter:
         self.w_max = w_max
         self.dw_max = dw_max
 
-        forward_vels, forward_accs = self.forward_jerk_filter(v0, a0, a_max, j_max, ds, original_vel, curvature)
+        forward_vels, forward_accs = self.forward_jerk_filter(v0, a0, a_max, j_max, ds, original_vel)
         backward_vels, backward_accs = self.backward_jerk_filter(v0, a0, a_min, j_min, ds, original_vel, forward_vels, forward_accs)
         merged_velocity = self.merge_filtered_velocity(forward_vels, backward_vels)
+        optimized_velocity = self.optimize_velocity_SX(merged_velocity)
+        
+        self.calculate_time(merged_velocity)
 
-        return merged_velocity, forward_accs, backward_accs
+        return merged_velocity, optimized_velocity, forward_accs, backward_accs, 
+
+    def optimize_velocity(self, merged_velocity):
+        # the objective function is velocity
+        # the constraints are acceleration, jerk
+        
+        opti = ca.Opti()
+        opt_vel = opti.variable(len(merged_velocity))
+        opt_acc = opti.variable(len(merged_velocity))
+
+        obj = 0
+        for i in range(len(merged_velocity)):
+            obj += -opt_vel[i]
+
+        opti.minimize(obj)
+        opti.subject_to(opti.bounded(self.a_min, opt_acc, self.a_max))
+        for i in range(len(merged_velocity)):
+            # v_i+1^2 - v_i^2 = 2*ai(si+1 - si)
+            opti.subject_to(opt_vel[i] >= 0)
+            opti.subject_to(opt_vel[i] <= merged_velocity[i])
+            opti.subject_to(opt_acc[i] >= self.a_min)
+            opti.subject_to(opt_acc[i] <= self.a_max)
+            if i < len(merged_velocity)-1:
+                opti.subject_to(opt_vel[i+1]**2 - opt_vel[i]**2 == 2*opt_acc[i]*self.ds)
+                opti.subject_to((opt_acc[i+1] - opt_acc[i]) <= self.j_max*self.ds/merged_velocity[i])
+                opti.subject_to((opt_acc[i+1] - opt_acc[i]) >= self.j_min*self.ds/merged_velocity[i])
+
+        opts_setting = {'ipopt.max_iter': 100, 'ipopt.print_level': 0, 'print_time': 0, 'expand': True,
+                        'ipopt.acceptable_tol': 1e-6, 'ipopt.acceptable_obj_change_tol': 1e-5}
+
+        opti.solver('ipopt', opts_setting)
+        start_time = time.time()
+        sol = opti.solve()
+        opt_vel = sol.value(opt_vel)
+        end_time = time.time()
+        print('optimize_time_ca ', end_time - start_time)
+        print(opt_vel.shape)
+        return opt_vel
+
+    def optimize_velocity_SX(self, merged_velocity):
+        # use lp to solve
+        
+        opt_vel = ca.SX.sym('opt_vel', len(merged_velocity))
+        opt_acc = ca.SX.sym('opt_acc', len(merged_velocity))
+
+        obj = 0
+        for i in range(len(merged_velocity)):
+            obj += -opt_vel[i]
+
+        lbx = [] # the constraint of x
+        ubx = []
+        lbg = [] # the constraint of g
+        ubg = []
+
+        for i in range(len(merged_velocity)):
+            lbx.append(0)
+            ubx.append(merged_velocity[i])
+        for i in range(len(merged_velocity)):
+            lbx.append(self.a_min)
+            ubx.append(self.a_max)
+
+        g = []
+        for i in range(len(merged_velocity)-1):
+                g.append(opt_vel[i+1]**2 - opt_vel[i]**2 - 2*opt_acc[i]*self.ds)
+                lbg.append(0)
+                ubg.append(0)
+                g.append((opt_acc[i+1] - opt_acc[i])/self.ds)
+                lbg.append(self.j_min)
+                ubg.append(self.j_max)
+
+        lp = {'x': ca.vertcat(opt_vel, opt_acc), 'f': obj, 'g': ca.vertcat(*g)}
+        # use osqp and set print level to 0
+        # set max iteration to 100
+        # solver = ca.qpsol('solver', 'qpoases', lp, {'sparse': True, 'expand': True}) 
+        solver = ca.nlpsol('solver', 'ipopt', lp, {'ipopt': {'print_level': 0}, 'print_time': 0, 'expand': True})
+
+        start_time = time.time()
+        sol = solver(lbx=lbx, ubx=ubx, lbg=lbg, ubg=ubg)
+        opt_vel = np.array(sol['x']).T[0, :len(merged_velocity)]
+        end_time = time.time()
+        print('optimize_time_ca ', end_time - start_time)
+
+        return np.array(opt_vel)
+
+    def calculate_time(self, merged_velocity):
+        t = 0.0
+        for i in range(1,len(self.traj_data.position)):
+            self.traj_data.velocity[i] = merged_velocity[i]
+            
+            dt = np.linalg.norm(self.traj_data.position[i] - self.traj_data.position[i-1])/((merged_velocity[i]+merged_velocity[i-1])/2)
+            # print(np.linalg.norm(self.traj_data.position[i] - self.traj_data.position[i-1]), "  ", ((merged_velocity[i]+merged_velocity[i-1])/2), "    " ,dt)
+            t += dt
+            # print(t)
+            self.traj_data.time[i] = t
+        
 
 
 # generate 5 random points
@@ -204,7 +289,7 @@ points = np.array([x, y])
 # generate spline interpolation
 si = Spline2D(x, y)
 interpolate_points = []
-ratio = 20
+ratio = 10
 
 interpolate_points_index = np.arange(0, si.s[-1], 1/ratio)
 
@@ -213,7 +298,6 @@ for i_s in interpolate_points_index:
 
 scene_gen = ScenarioGenerator()
 scene_gen.ds = 1/ratio
-max_vels = np.array([scene_gen.max_vel]*len(interpolate_points_index))
 
 # https://blog.csdn.net/q1302182594/article/details/50556529
 dddy = []
@@ -238,21 +322,23 @@ V_expect = scene_gen.max_w / np.array(K)
 for i in range(len(V_expect)):
     if V_expect[i] > scene_gen.max_vel:
         V_expect[i] = scene_gen.max_vel
+V_expect = np.insert(V_expect, 0, scene_gen.v0)
+V_expect = np.append(V_expect, scene_gen.vg)
 
 # filter the velocity
 velocity_filter = VelocityFilter()
-velocity_filter.modify_maximum_veolicty(np.array(interpolate_points), max_vels)
+velocity_filter.modify_maximum_veolicty(np.array(interpolate_points), V_expect)
 
-merged_velocity, forward_acc, backward_acc = velocity_filter.smooth_velocity(scene_gen.ds, scene_gen.v0, scene_gen.a0, scene_gen.max_acc, scene_gen.min_acc, scene_gen.max_jerk, scene_gen.min_jerk, 
-                                                  scene_gen.max_w, scene_gen.max_dw,  max_vels, K)
+merged_velocity, optimized_velocity, forward_acc, backward_acc = velocity_filter.smooth_velocity(scene_gen.ds, scene_gen.v0, scene_gen.a0, 
+                                                                 scene_gen.max_acc, scene_gen.min_acc, scene_gen.max_jerk, scene_gen.min_jerk, 
+                                                                 scene_gen.max_w, scene_gen.max_dw,  V_expect)
 
 cmap = plt.cm.get_cmap('jet')
 normalize = plt.Normalize(vmin=min(merged_velocity), vmax=max(merged_velocity))
 
 
-plt.scatter(interpolate_points_index, np.array(interpolate_points)[:, 1],  c=cmap(normalize(merged_velocity)))
+plt.scatter(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1], c=cmap(normalize(merged_velocity)))
 # display a colorbar with the given velocity data
-
 
 plt.colorbar(mpl.cm.ScalarMappable(norm=normalize, cmap=cmap))
 # plt.plot(points[0, :], points[1, :], 'ro')
@@ -260,19 +346,17 @@ plt.axis('equal')
 
 # plot the velocity in a new figure
 plt.figure()
-plt.plot(interpolate_points_index, merged_velocity, label='velocity')
-plt.plot(interpolate_points_index, forward_acc, label='f_acc')
+
+plt.plot(np.array(interpolate_points)[:, 0], forward_acc, label='f_acc')
 
 # plot the expected velocity
-plt.plot(interpolate_points_index[1:-1], V_expect, label='expected velocity')
+# plt.plot(np.array(interpolate_points)[:, 0], V_expect, label='expected velocity')
+plt.plot(np.array(interpolate_points)[:, 0], merged_velocity, label='merged_velocity')
+plt.plot(np.array(interpolate_points)[:, 0], optimized_velocity, label='optimized velocity')
 
 # plot the curvature on the velocity figure
-plt.plot(interpolate_points_index[1:-1], K, label='curvature')
+plt.plot(np.array(interpolate_points)[:, 0][1:-1], K, label='curvature')
 # plt.plot(interpolate_points_index, point_direction, label='direction')
-
-# plot the w/v on the velocity figure
-w_v = [scene_gen.max_w / scene_gen.max_vel] * len(interpolate_points_index)
-plt.plot(interpolate_points_index, w_v, label='w/v')
 
 
 # plot accelaration in every step
@@ -291,9 +375,6 @@ plt.plot(interpolate_points_index, w_v, label='w/v')
 
 plt.axis('equal')
 
-plt.figure()
-# plot points with expected velocity
-plt.scatter(interpolate_points_index[1:-1], np.array(interpolate_points)[:, 1][1:-1],  c=cmap(normalize(V_expect)))
 
 # plot the points
 plt.legend()
