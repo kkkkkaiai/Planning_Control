@@ -23,9 +23,9 @@ class ScenarioGenerator:
         self.generateNormalScenario()
 
     def generateNormalScenario(self):
-        self.v0 = 0.0
-        self.a0 = 0.0
-        self.vg = 0.0
+        self.v0 = 0.2
+        self.a0 = 0.1
+        self.vg = 0.4
         self.ag = 0.0
         self.ds = 0.1
         self.max_vel = 1.0
@@ -65,6 +65,7 @@ class VelocityFilter:
         self.v0 = 0.0
         self.a0 = 0.0
         self.vg = 0.0
+        self.ag = 0.0
         self.ds = 0.0
         self.a_max = 0.0
         self.a_min = 0.0
@@ -159,15 +160,17 @@ class VelocityFilter:
                 i += 1
 
         while i < len(merged_vels):
-            merged_vels[i] = forward_vels[i] if forward_vels[i] < backward_vels[i] else backward_vels[i]
+            merged_vels[i] = backward_vels[i] if forward_vels[i] < backward_vels[i] else forward_vels[i]
             i += 1
 
         return merged_vels
 
-    def smooth_velocity(self, ds, v0, a0, a_max, a_min, j_max, j_min, w_max, dw_max, original_vel):
+    def smooth_velocity(self, ds, v0, a0, vg, ag, a_max, a_min, j_max, j_min, w_max, dw_max, original_vel):
         self.ds = ds
         self.v0 = v0
         self.a0 = a0
+        self.vg = vg
+        self.ag = ag
         self.a_max = a_max
         self.a_min = a_min
         self.j_max = j_max
@@ -176,7 +179,7 @@ class VelocityFilter:
         self.dw_max = dw_max
 
         forward_vels, forward_accs = self.forward_jerk_filter(v0, a0, a_max, j_max, ds, original_vel)
-        backward_vels, backward_accs = self.backward_jerk_filter(v0, a0, a_min, j_min, ds, original_vel, forward_vels, forward_accs)
+        backward_vels, backward_accs = self.backward_jerk_filter(vg, ag, a_min, j_min, ds, original_vel, forward_vels, forward_accs)
         merged_velocity = self.merge_filtered_velocity(forward_vels, backward_vels)
         optimized_velocity = self.optimize_velocity_SX(merged_velocity)
         
@@ -289,7 +292,7 @@ points = np.array([x, y])
 # generate spline interpolation
 si = Spline2D(x, y)
 interpolate_points = []
-ratio = 10
+ratio = 20
 
 interpolate_points_index = np.arange(0, si.s[-1], 1/ratio)
 
@@ -330,8 +333,8 @@ velocity_filter = VelocityFilter()
 velocity_filter.modify_maximum_veolicty(np.array(interpolate_points), V_expect)
 
 merged_velocity, optimized_velocity, forward_acc, backward_acc = velocity_filter.smooth_velocity(scene_gen.ds, scene_gen.v0, scene_gen.a0, 
-                                                                 scene_gen.max_acc, scene_gen.min_acc, scene_gen.max_jerk, scene_gen.min_jerk, 
-                                                                 scene_gen.max_w, scene_gen.max_dw,  V_expect)
+                                                                scene_gen.vg, scene_gen.ag, scene_gen.max_acc, scene_gen.min_acc,
+                                                                scene_gen.max_jerk, scene_gen.min_jerk, scene_gen.max_w, scene_gen.max_dw,  V_expect)
 
 cmap = plt.cm.get_cmap('jet')
 normalize = plt.Normalize(vmin=min(merged_velocity), vmax=max(merged_velocity))
