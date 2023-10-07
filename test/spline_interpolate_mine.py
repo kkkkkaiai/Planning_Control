@@ -14,8 +14,6 @@ import casadi as ca
 import matplotlib as mpl
 
 import casadi as ca
-import osqp
-from scipy import sparse
 
 V_expect = 0
 class ScenarioGenerator:
@@ -30,10 +28,10 @@ class ScenarioGenerator:
         self.ds = 0.1
         self.max_vel = 1.0
         self.max_acc = 0.8
-        self.max_jerk = 0.4
+        self.max_jerk = 0.5
         self.min_acc = -0.8
-        self.min_jerk = -0.4
-        self.max_w = 1.0
+        self.min_jerk = -0.5
+        self.max_w = 1.2
         self.max_dw = 0.5
         self.max_ddw = 0.4
         self.min_dw = -self.max_w
@@ -340,7 +338,7 @@ cmap = plt.cm.get_cmap('jet')
 normalize = plt.Normalize(vmin=min(merged_velocity), vmax=max(merged_velocity))
 
 
-plt.scatter(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1], c=cmap(normalize(merged_velocity)))
+plt.scatter(np.array(interpolate_points)[:, 0], np.array(interpolate_points)[:, 1], c=cmap(normalize(optimized_velocity)))
 # display a colorbar with the given velocity data
 
 plt.colorbar(mpl.cm.ScalarMappable(norm=normalize, cmap=cmap))
