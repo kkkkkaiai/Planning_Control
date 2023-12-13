@@ -87,7 +87,7 @@ def test():
     robot_yaw = np.pi
     robot_radius = 0.3
     from sensors.laser import Laser
-    laser = Laser(6, 3, beams=64)
+    laser = Laser(6, beams=64)
     de_obs = laser.state2obs(robot_c, robot_yaw, c, H_obs)
     
     #  Plot 

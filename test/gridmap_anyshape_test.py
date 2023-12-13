@@ -157,7 +157,6 @@ if __name__ == '__main__':
     
         decomp = SeedDecomp2D(np.array(robot_c)/resolusion)
         decomp.set_obs(de_obs['point'])
-        print(de_obs['point'])
         decomp.set_local_bbox(bbox)
         decomp.dilate(1.)
         poly = decomp.get_polyhedron()
@@ -177,7 +176,7 @@ if __name__ == '__main__':
 
         update_robot_plot(robot_c, True)
         update_convex_vertice(vertices, True)
-        # update_laser_points(de_obs['point'], True)
+        update_laser_points(de_obs['point'], True)
 
         plt.legend()
         plt.tight_layout()

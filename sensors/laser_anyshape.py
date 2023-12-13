@@ -71,6 +71,7 @@ class Laser(Sensor):
             point_mat[idx_point-1, :, 0] = x[0]/self._mapres + r/self._mapres * np.cos(theta_sensor_with_yaw)
             point_mat[idx_point-1, :, 1] = x[1]/self._mapres + r/self._mapres * np.sin(theta_sensor_with_yaw)
 
+
         obstacle_flag = self.check_obstacle(point_mat)
         obs_angle = self._d_laser * np.ones(len(theta_sensor_with_yaw))
         
@@ -81,6 +82,8 @@ class Laser(Sensor):
             idx = obstacle_flag[idx_point-1]
             point[idx_point-1] = point_mat[idx,idx_point-1]
             obs_angle[idx_point-1] = round(idx * self._d_laser, 4)
+            length_list.append(obs_angle[idx_point-1])
+
 
         if filter_unknow:
             index = np.where(obs_angle >0)
@@ -90,5 +93,6 @@ class Laser(Sensor):
 
         point_list.append(point)
         observ['point'] = np.array(point_list).squeeze()
+        observ['length'] = np.array(length_list)
 
         return observ
