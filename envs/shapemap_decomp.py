@@ -21,7 +21,7 @@ from envs.gridmap import OccupancyGridMap
 from decomp_util_2d import *
 from geometric_utils import *
 
-def gen_obs_map(file_path="envs/maps/obstacle_map_occupancy.png", resolusion=0.05, num_obs=None, radius_range=[0.1, 0.25], x_range=[-1.0, 1.0], y_range=[0.7, 5.3], obs_dist=0.5, load_mode=True):
+def gen_obs_map(file_path="envs/maps/obstacle_map_occupancy_1.png", resolusion=0.05, num_obs=None, radius_range=[0.1, 0.25], x_range=[-1.0, 1.0], y_range=[0.7, 5.3], obs_dist=0.5, load_mode=True):
     if os.path.exists(file_path):
         return
     
@@ -81,7 +81,7 @@ def gen_obs_map(file_path="envs/maps/obstacle_map_occupancy.png", resolusion=0.0
     plt.axis(edges)
     plt.axis('off')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.savefig('envs/maps/obstacle_map_occupancy.png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(file_path, bbox_inches='tight', pad_inches=0)
     # plt.show()
 
 def test():
