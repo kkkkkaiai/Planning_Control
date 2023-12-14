@@ -19,7 +19,9 @@ from sensors.laser_anyshape import Laser
 from decomp_util_2d import *
 from geometric_utils import *
 from sklearn.cluster import DBSCAN
+
 from copy import deepcopy
+from scipy.optimize import minimize
 
 descriptor_resolution = 128
 descriptor_angle_range = np.pi*2
@@ -221,7 +223,7 @@ def find_travel_position1(laser_info, robot_c):
         # calculate the distance between the robot_c and the tangent point
         length = np.sqrt(distance**2 - min_radius**2)
         # unit vector between the point and robot_c
-        unit_vector = (travel_position[i]- robot_c/resolusion)/distance
+        unit_vector = (robot_c/resolusion - travel_position[i])/distance
         # angle between the tangent line and the line between the robot_c and the travel point
         angle = np.arcsin(min_radius/distance)
         # calculate the tangent point 
@@ -236,11 +238,11 @@ def find_travel_position1(laser_info, robot_c):
         y2 = y2 * length
 
         if robot_c[0] < travel_position[i][0]:
-            x1 = -x1
-            x2 = -x2
+            x1 = x1
+            x2 = x2
         if robot_c[1] < travel_position[i][1]:
-            y1 = -y1
-            y2 = -y2
+            y1 = y1
+            y2 = y2
 
         x1 += travel_position[i][0]
         x2 += travel_position[i][0]
@@ -274,8 +276,9 @@ def find_travel_position1(laser_info, robot_c):
         if min_angle * max_angle > 0:
             choose_mode = 1
 
-        print("=================")
-        print("angle info",  min_angle, max_angle)
+        # [DEBUG]
+        # print("=================")
+        # print("angle info",  min_angle, max_angle)
         
         for j in range(len(filter_points)):
             ## if the distance between the travel point and the laser point is less than the length in tangent_point_and_length
@@ -296,31 +299,73 @@ def find_travel_position1(laser_info, robot_c):
             else:
                 if angle > min_angle and angle < max_angle:
                     continue
-            print(angle)
+            # [DEBUG]
+            # print(angle)
             ## calculate the index of the descriptor
-            index = int((angle+np.pi)/descriptor_angle_res)
+            index = int((angle+np.pi)/descriptor_angle_res)%descriptor_resolution
+
             temp_descriptor[index] = np.linalg.norm(filter_points[j]-travel_position[i])
         
         descriptor_list.append(temp_descriptor)
 
+    ### 7.construct transfer point
+    # transfer point connect the robot_c and the travel points in each cluster
+    transfer_point = []
+    weights = [1, 1, 1]
+
+    def weighted_distance(x, points, weights):
+        return sum(weights[i] * np.linalg.norm(x - p) for i, p in enumerate(points))
+
+    for i in range(0, len(travel_position), 2):
+        points = np.array([robot_c/resolusion, travel_position[i], travel_position[i+1]])
+        # calculate the distance between the travel_positions
+        distance = np.linalg.norm(travel_position[i]-travel_position[i+1])
+        robot_distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+        print(robot_distance, distance, robot_distance/distance)
+        temp_weights = deepcopy(weights)
+        temp_weights[0] = min(robot_distance/distance, 1.85)
+        # temp_weights[1] = distance
+        # temp_weights[2] = distance
+        # do normalization
+        temp_weights = temp_weights/np.sum(temp_weights)
+
+        initial_guess = np.mean(points, axis=0)
+        result = minimize(lambda x: weighted_distance(x, points, temp_weights), initial_guess, method='L-BFGS-B')
+        optimal_point = result.x
+        # [DEBUG]
+        # print(initial_guess)
+        transfer_point.append(optimal_point)
+        print(points, optimal_point)
+        # plot the transfer point
+        plt.scatter(optimal_point[0], optimal_point[1], c='tab:green', s=60)
+        # # draw the line between the transfer point and the robot_c and the travel point
+        plt.plot([robot_c[0]/resolusion, optimal_point[0]], [robot_c[1]/resolusion, optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
+        plt.plot([travel_position[i][0], optimal_point[0]], [travel_position[i][1], optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
+        plt.plot([travel_position[i+1][0], optimal_point[0]], [travel_position[i+1][1], optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
+
     plt.scatter(filter_points[:, 0], filter_points[:, 1], c=labels, cmap='viridis', s=60)
     plt.title('DBSCAN Clustering')
 
-    # plot one the descriptor
-    descriptor_index = 3
-    plot_the_descriptor(travel_position[descriptor_index], descriptor_list[descriptor_index])
+    # [debug]plot one the descriptor
+    descriptor_index = 0
+    if len(travel_position) > 0:
+        plot_the_descriptor(travel_position[descriptor_index], descriptor_list[descriptor_index])
+    
     plt.show()
+
+
 
 def plot_the_descriptor(descriptor_pos, descriptor):
     points = []
-    print(descriptor_pos)
-    print(descriptor)
+    # print(descriptor_pos)
+    # print(descriptor)
     for i in range(len(descriptor)):
         if descriptor[i] != -1:
             points.append([descriptor_pos[0]+descriptor[i]*np.cos(descriptor_angle[i]), \
                            descriptor_pos[1]+descriptor[i]*np.sin(descriptor_angle[i])])
 
-    
+    if len(points) == 0:
+        return
     ax.scatter(np.array(points)[:, 0], np.array(points)[:, 1], c='tab:orange', s=60)
 
 
@@ -394,7 +439,8 @@ if __name__ == '__main__':
     resolusion = 0.05
     gridmap = OccupancyGridMap.from_png(map_file, resolusion)
     pM = PathManager(gridmap)
-    start_position = np.array([1.0, 1.0])
+    start_position = np.array([0.5, 5.0])  # wrong tangent point
+    # start_position = np.array([1.0, 2.0])  # wrong tangent point
     end_position = np.array([4.5, 5.2])
     path = pM.find_path(start_position, end_position)
     # path = pM.find_gradient()
@@ -460,7 +506,6 @@ if __name__ == '__main__':
         robot_c = path[index]*resolusion
         de_obs = laser.state2obs(robot_c, robot_yaw, False)
         travel_position = find_travel_position1(de_obs, robot_c)
-        print(len(travel_position))
 
         update_robot_plot(robot_c, True)
         update_laser_points(de_obs['point'], True)
