@@ -19,6 +19,13 @@ from sensors.laser_anyshape import Laser
 from decomp_util_2d import *
 from geometric_utils import *
 from sklearn.cluster import DBSCAN
+from copy import deepcopy
+
+descriptor_resolution = 128
+descriptor_angle_range = np.pi*2
+descriptor_angle = np.linspace(-np.pi, np.pi, descriptor_resolution)
+descriptor_angle_res = descriptor_angle_range/descriptor_resolution
+descriptor = [-1 for i in range(descriptor_resolution)]
 
 class PathManager:
     def __init__(self, gridmap, start_node=(6.0, 3.0), end_node=(16.0, 16.0)) -> None:
@@ -118,6 +125,7 @@ def find_travel_position1(laser_info, robot_c):
     '''
     use dbscan find the travel position
     '''
+    ### 1 use dbscan to segment the laser points
     dbscan = DBSCAN(eps=0.3/0.05, min_samples=3)
     laser_points = laser_info['point']
     points_length = laser_info['length']
@@ -131,15 +139,13 @@ def find_travel_position1(laser_info, robot_c):
     filter_points = np.array(filter_points)
     labels = dbscan.fit_predict(filter_points)
     
+    ### 2 get the center of each cluster and calculate the direction from the robot pos
     # put different label into different list
     label_list = []
     for i in range(np.max(labels)+1):
         label_list.append([])
     for i in range(len(labels)):
         label_list[labels[i]].append(filter_points[i])
-    
-    print(np.array(label_list[0]).shape)
-    print(np.array(label_list[1]).shape)
 
     # calculate the center of each lable and get the direction from the robot pos
     center_list = []
@@ -157,6 +163,7 @@ def find_travel_position1(laser_info, robot_c):
     for i in range(len(direction_list)):
         plt.arrow(robot_c[0]/resolusion, robot_c[1]/resolusion, direction_list[i][0], direction_list[i][1], color='tab:blue', width=0.01)
 
+    ### 3. calculate the angle between robot_c to the points in each cluster and find the max and min angle and corresponding point
     # calculate the angle between robot_c to the points in each cluster and find the max and min angle and corresponding point
     # min_index min_angle, max_index, max_angle
     max_min_angle = [[0,np.inf,0,-np.inf] for i in range(len(label_list))]
@@ -164,14 +171,14 @@ def find_travel_position1(laser_info, robot_c):
     for i in range(len(label_list)):
         for j in range(len(label_list[i])):
             angle = np.arctan2(label_list[i][j][1]-robot_c[1]/resolusion, label_list[i][j][0]-robot_c[0]/resolusion)
-            print('----------------------')
-            print('before ',angle, '@@@ ', direction_angle_list[i])
+            # print('----------------------')
+            # print('before ',angle, '@@@ ', direction_angle_list[i])
             # calculate the angle between the robot_c to center of the cluster(the angle is betwwen -pi to pi)
             angle = (angle - direction_angle_list[i])
             angle = np.arctan2(np.sin(angle), np.cos(angle))
 
-            print(label_list[i][j], robot_c/resolusion)
-            print('after ', angle)
+            # print(label_list[i][j], robot_c/resolusion)
+            # print('after ', angle)
             if angle < max_min_angle[i][1]:
                 max_min_angle[i][0] = j
                 max_min_angle[i][1] = angle
@@ -179,20 +186,182 @@ def find_travel_position1(laser_info, robot_c):
                 max_min_angle[i][2] = j
                 max_min_angle[i][3] = angle
 
-    print(max_min_angle)
+    # record the travel position in each cluster
+    travel_position = []
+    for i in range(len(max_min_angle)):
+        travel_position.append(label_list[i][max_min_angle[i][0]])
+        travel_position.append(label_list[i][max_min_angle[i][2]])
 
     # plot the points with max and min angle
     for i in range(len(max_min_angle)):
-        plt.plot(label_list[i][max_min_angle[i][0]][0], label_list[i][max_min_angle[i][0]][1], 'ro')
-        plt.plot(label_list[i][max_min_angle[i][2]][0], label_list[i][max_min_angle[i][2]][1], 'go')
+        plt.scatter(label_list[i][max_min_angle[i][0]][0], label_list[i][max_min_angle[i][0]][1], c='tab:red', s=60)
+        plt.scatter(label_list[i][max_min_angle[i][2]][0], label_list[i][max_min_angle[i][2]][1], c='tab:red', s=60)
 
+    ### 4.get the minimum radius circle from the robot positon to the nearst laser points
+    # the minimum radius circle from the robot positon to the nearst laser points
+    min_radius = np.inf
+    min_radius_index = 0
+    for i in range(len(filter_points)):
+        radius = np.linalg.norm(filter_points[i]-robot_c/resolusion)
+        if radius < min_radius:
+            min_radius = radius
+            min_radius_index = i
+
+    # plot the minimum radius circle
+    circle = plt.Circle((robot_c[0]/resolusion, robot_c[1]/resolusion), min_radius, color='tab:gray', fill=False) 
+    ax = plt.gca()
+    ax.add_patch(circle)
+
+    ### 5.calculate the tangent point and the tangent line, it is used to filter the points and determine which points
+    ### could be used for constructing the descriptor  
+    # for the travel points, calculate the outer tangent point and the angle between the point and travel point
+    tangent_point_and_length = []
+    for i in range(len(travel_position)):
+        distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+        # calculate the distance between the robot_c and the tangent point
+        length = np.sqrt(distance**2 - min_radius**2)
+        # unit vector between the point and robot_c
+        unit_vector = (travel_position[i]- robot_c/resolusion)/distance
+        # angle between the tangent line and the line between the robot_c and the travel point
+        angle = np.arcsin(min_radius/distance)
+        # calculate the tangent point 
+        x1 = unit_vector[0]*np.cos(angle) - unit_vector[1]*np.sin(angle)
+        y1 = unit_vector[0]*np.sin(angle) + unit_vector[1]*np.cos(angle)
+        x2 = unit_vector[0]*np.cos(-angle) - unit_vector[1]*np.sin(-angle)
+        y2 = unit_vector[0]*np.sin(-angle) + unit_vector[1]*np.cos(-angle)
+        
+        x1 = x1 * length
+        x2 = x2 * length
+        y1 = y1 * length
+        y2 = y2 * length
+
+        if robot_c[0] < travel_position[i][0]:
+            x1 = -x1
+            x2 = -x2
+        if robot_c[1] < travel_position[i][1]:
+            y1 = -y1
+            y2 = -y2
+
+        x1 += travel_position[i][0]
+        x2 += travel_position[i][0]
+        y1 += travel_position[i][1]
+        y2 += travel_position[i][1]
+
+        tangent_point_and_length.append([x1, y1, x2, y2, length])
+
+        # plot the tangent point
+        plt.scatter(x1, y1, c='tab:blue', s=60)
+        plt.scatter(x2, y2, c='tab:blue', s=60)
+
+        # plot the tangent line from travel point to the tangent point
+        plt.plot([travel_position[i][0], x1], [travel_position[i][1], y1], c='tab:blue', linewidth=1, alpha=0.5)
+        plt.plot([travel_position[i][0], x2], [travel_position[i][1], y2], c='tab:blue', linewidth=1, alpha=0.5)
+
+    ### 6. calculate the descriptor
+    # calculate the descriptor
+    descriptor_list = []
+    for i in range(len(travel_position)):
+        temp_descriptor = deepcopy(descriptor)
+        min_angle = np.arctan2(tangent_point_and_length[i][1]-travel_position[i][1], tangent_point_and_length[i][0]-travel_position[i][0])
+        max_angle = np.arctan2(tangent_point_and_length[i][3]-travel_position[i][1], tangent_point_and_length[i][2]-travel_position[i][0])
+        if min_angle > max_angle:
+            temp_angle = min_angle
+            min_angle = max_angle
+            max_angle = temp_angle
+
+        # calculate the angle of the travel_point to the robot_c
+        choose_mode = 0
+        if min_angle * max_angle > 0:
+            choose_mode = 1
+
+        print("=================")
+        print("angle info",  min_angle, max_angle)
+        
+        for j in range(len(filter_points)):
+            ## if the distance between the travel point and the laser point is less than the length in tangent_point_and_length
+            ## the point is not used for constructing the descriptor
+            distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+            # choice 1
+            if np.linalg.norm(filter_points[j]-travel_position[i]) < distance:
+            # choice 2
+            # if np.linalg.norm(filter_points[j]-travel_position[i]) < tangent_point_and_length[i][4]:
+                continue
+            
+            ## if the angle between the travel point and the laser point is out of the range of 
+            ## the angle between the tangent line, it is not used for constructing the descriptor
+            angle = np.arctan2(filter_points[j][1]-travel_position[i][1], filter_points[j][0]-travel_position[i][0])
+            if choose_mode == 1:
+                if angle < min_angle or angle > max_angle:
+                    continue
+            else:
+                if angle > min_angle and angle < max_angle:
+                    continue
+            print(angle)
+            ## calculate the index of the descriptor
+            index = int((angle+np.pi)/descriptor_angle_res)
+            temp_descriptor[index] = np.linalg.norm(filter_points[j]-travel_position[i])
+        
+        descriptor_list.append(temp_descriptor)
 
     plt.scatter(filter_points[:, 0], filter_points[:, 1], c=labels, cmap='viridis', s=60)
     plt.title('DBSCAN Clustering')
+
+    # plot one the descriptor
+    descriptor_index = 3
+    plot_the_descriptor(travel_position[descriptor_index], descriptor_list[descriptor_index])
     plt.show()
 
+def plot_the_descriptor(descriptor_pos, descriptor):
+    points = []
+    print(descriptor_pos)
+    print(descriptor)
+    for i in range(len(descriptor)):
+        if descriptor[i] != -1:
+            points.append([descriptor_pos[0]+descriptor[i]*np.cos(descriptor_angle[i]), \
+                           descriptor_pos[1]+descriptor[i]*np.sin(descriptor_angle[i])])
+
+    
+    ax.scatter(np.array(points)[:, 0], np.array(points)[:, 1], c='tab:orange', s=60)
 
 
+
+def get_tangent_line(tx, ty, ox, oy, r):
+    distance = math.sqrt((tx - ox) ** 2 + (ty - oy) ** 2)
+    length = math.sqrt(distance ** 2 - r ** 2)
+
+    if distance <= r:
+        print("输入的数值不在范围内")
+        return
+
+    cx = abs(ox - tx) / distance
+    cy = abs(oy - ty) / distance
+
+    angle = math.asin(r / distance)
+
+    q1x = cx * math.cos(angle) - cy * math.sin(angle)
+    q1y = cx * math.sin(angle) + cy * math.cos(angle)
+    q2x = cx * math.cos(-angle) - cy * math.sin(-angle)
+    q2y = cx * math.sin(-angle) + cy * math.cos(-angle)
+
+    q1x = q1x * length
+    q1y = q1y * length
+    q2x = q2x * length
+    q2y = q2y * length
+
+    if ox < tx:
+        q1x = -q1x 
+        q2x = -q2x
+    
+    if oy < ty:
+        q1y = -q1y 
+        q2y = -q2y
+
+    q1x += tx
+    q2x += tx
+    q1y += ty
+    q2y += ty
+
+    return [q1x, q1y, q2x, q2y]
 
 def merge_travel_position(last_position_list, cur_position_list):
     '''
