@@ -82,6 +82,7 @@ class Laser(Sensor):
             idx = obstacle_flag[idx_point-1]
             point[idx_point-1] = point_mat[idx,idx_point-1]
             obs_angle[idx_point-1] = round(idx * self._d_laser, 4)
+            # obs distance to current position
             length_list.append(obs_angle[idx_point-1])
 
 
@@ -91,8 +92,7 @@ class Laser(Sensor):
             obs_angle = obs_angle[index]
             point = point[index]
 
-        point_list.append(point)
-        observ['point'] = np.array(point_list).squeeze()
+        observ['point'] = np.array(point)
         observ['length'] = np.array(length_list)
 
         return observ

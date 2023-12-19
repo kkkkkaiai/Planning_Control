@@ -123,32 +123,48 @@ def find_travel_position(laser_info):
 
     return travel_position
 
+
+class TravelPositionNode:
+    def __init__(self) -> None:
+        self._position = None
+        self._descriptor = None
+        self._id = None
+        self._stuck = False
+        self._upper = None
+        self._lower = None
+
+id_to_node = {}
+all_travel_position = []
+
+# key point 1: find the travel position
 def find_travel_position1(laser_info, robot_c):
     '''
     use dbscan find the travel position
     '''
-    ### 1 use dbscan to segment the laser points
-    dbscan = DBSCAN(eps=0.4/0.05, min_samples=2)
+    ### 1.use dbscan to segment the laser points
+    dbscan = DBSCAN(eps=0.35/0.05, min_samples=2)
     laser_points = laser_info['point']
     points_length = laser_info['length']
 
     filter_points = []
     for i in range(len(laser_points)):
-        if (points_length[i] < 0.05) or (points_length[i] > 1.95):
-            continue
+        # if (points_length[i] < 0.05) or (points_length[i] > 2.0):
+        #     continue
         filter_points.append(laser_points[i])
 
     filter_points = np.array(filter_points)
     labels = dbscan.fit_predict(filter_points)
     
     print(labels)
-    ### 2 get the center of each cluster and calculate the direction from the robot pos
+    ### 2.get the center of each cluster and calculate the direction from the robot pos
     # put different label into different list
     label_list = []
     for i in range(np.max(labels)+1):
         label_list.append([])
     for i in range(len(labels)):
-        label_list[labels[i]].append(filter_points[i])
+        if labels[i] != -1:
+            label_list[labels[i]].append(filter_points[i])
+
 
     # calculate the center of each lable and get the direction from the robot pos
     center_list = []
@@ -159,28 +175,28 @@ def find_travel_position1(laser_info, robot_c):
     direction_list = []
     direction_angle_list = []
     for i in range(len(center_list)):
-        direction_list.append(center_list[i]-robot_c/resolusion)
+        direction_list.append(center_list[i]-robot_c/resolution)
         direction_angle_list.append(np.arctan2(direction_list[i][1], direction_list[i][0]))
   
     # plot direction_list
     for i in range(len(direction_list)):
-        plt.arrow(robot_c[0]/resolusion, robot_c[1]/resolusion, direction_list[i][0], direction_list[i][1], color='tab:blue', width=0.01)
+        plt.arrow(robot_c[0]/resolution, robot_c[1]/resolution, direction_list[i][0], direction_list[i][1], color='tab:blue', width=0.01)
 
-    ### 3. calculate the angle between robot_c to the points in each cluster and find the max and min angle and corresponding point
+    ### 3.calculate the angle between robot_c to the points in each cluster and find the max and min angle and corresponding point
     # calculate the angle between robot_c to the points in each cluster and find the max and min angle and corresponding point
     # min_index min_angle, max_index, max_angle
     max_min_angle = [[0,np.inf,0,-np.inf] for i in range(len(label_list))]
 
     for i in range(len(label_list)):
         for j in range(len(label_list[i])):
-            angle = np.arctan2(label_list[i][j][1]-robot_c[1]/resolusion, label_list[i][j][0]-robot_c[0]/resolusion)
+            angle = np.arctan2(label_list[i][j][1]-robot_c[1]/resolution, label_list[i][j][0]-robot_c[0]/resolution)
             # print('----------------------')
             # print('before ',angle, '@@@ ', direction_angle_list[i])
             # calculate the angle between the robot_c to center of the cluster(the angle is betwwen -pi to pi)
             angle = (angle - direction_angle_list[i])
             angle = np.arctan2(np.sin(angle), np.cos(angle))
 
-            # print(label_list[i][j], robot_c/resolusion)
+            # print(label_list[i][j], robot_c/resolution)
             # print('after ', angle)
             if angle < max_min_angle[i][1]:
                 max_min_angle[i][0] = j
@@ -192,26 +208,30 @@ def find_travel_position1(laser_info, robot_c):
     # record the travel position in each cluster
     travel_position = []
     for i in range(len(max_min_angle)):
+        # check the distance whether is close to the max laser range
+        if np.linalg.norm(label_list[i][max_min_angle[i][0]]-robot_c/resolution) > 3.7/0.05 or \
+           np.linalg.norm(label_list[i][max_min_angle[i][2]]-robot_c/resolution) > 3.7/0.05:
+            continue
         travel_position.append(label_list[i][max_min_angle[i][0]])
         travel_position.append(label_list[i][max_min_angle[i][2]])
 
     # plot the points with max and min angle
     for i in range(len(max_min_angle)):
-        plt.scatter(label_list[i][max_min_angle[i][0]][0], label_list[i][max_min_angle[i][0]][1], c='tab:red', s=60)
-        plt.scatter(label_list[i][max_min_angle[i][2]][0], label_list[i][max_min_angle[i][2]][1], c='tab:red', s=60)
+        plt.scatter(label_list[i][max_min_angle[i][0]][0], label_list[i][max_min_angle[i][0]][1], c='tab:red', s=15)
+        plt.scatter(label_list[i][max_min_angle[i][2]][0], label_list[i][max_min_angle[i][2]][1], c='tab:red', s=15)
 
-    ### 4.get the minimum radius circle from the robot positon to the nearst laser points
-    # the minimum radius circle from the robot positon to the nearst laser points
+    ### 4.get the minimum radius circle from the robot positon to the nearest laser points
+    # the minimum radius circle from the robot positon to the nearest laser points
     min_radius = np.inf
     min_radius_index = 0
     for i in range(len(filter_points)):
-        radius = np.linalg.norm(filter_points[i]-robot_c/resolusion)
+        radius = np.linalg.norm(filter_points[i]-robot_c/resolution)
         if radius < min_radius:
             min_radius = radius
             min_radius_index = i
 
     # plot the minimum radius circle
-    circle = plt.Circle((robot_c[0]/resolusion, robot_c[1]/resolusion), min_radius, color='tab:gray', fill=False) 
+    circle = plt.Circle((robot_c[0]/resolution, robot_c[1]/resolution), min_radius, color='tab:gray', fill=False) 
     ax = plt.gca()
     ax.add_patch(circle)
 
@@ -220,11 +240,11 @@ def find_travel_position1(laser_info, robot_c):
     # for the travel points, calculate the outer tangent point and the angle between the point and travel point
     tangent_point_and_length = []
     for i in range(len(travel_position)):
-        distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+        distance = np.linalg.norm(travel_position[i]-robot_c/resolution)
         # calculate the distance between the robot_c and the tangent point
         length = np.sqrt(distance**2 - min_radius**2)
         # unit vector between the point and robot_c
-        unit_vector = (robot_c/resolusion - travel_position[i])/distance
+        unit_vector = (robot_c/resolution - travel_position[i])/distance
         # angle between the tangent line and the line between the robot_c and the travel point
         angle = np.arcsin(min_radius/distance)
         # calculate the tangent point 
@@ -253,8 +273,8 @@ def find_travel_position1(laser_info, robot_c):
         tangent_point_and_length.append([x1, y1, x2, y2, length])
 
         # plot the tangent point
-        plt.scatter(x1, y1, c='tab:blue', s=60)
-        plt.scatter(x2, y2, c='tab:blue', s=60)
+        plt.scatter(x1, y1, c='tab:blue', s=15)
+        plt.scatter(x2, y2, c='tab:blue', s=15)
 
         # plot the tangent line from travel point to the tangent point
         plt.plot([travel_position[i][0], x1], [travel_position[i][1], y1], c='tab:blue', linewidth=1, alpha=0.5)
@@ -284,7 +304,7 @@ def find_travel_position1(laser_info, robot_c):
         for j in range(len(filter_points)):
             ## if the distance between the travel point and the laser point is less than the length in tangent_point_and_length
             ## the point is not used for constructing the descriptor
-            distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+            distance = np.linalg.norm(travel_position[i]-robot_c/resolution)
             # choice 1
             if np.linalg.norm(filter_points[j]-travel_position[i]) < distance:
             # choice 2
@@ -318,10 +338,10 @@ def find_travel_position1(laser_info, robot_c):
         return sum(weights[i] * np.linalg.norm(x - p) for i, p in enumerate(points))
 
     for i in range(0, len(travel_position), 2):
-        points = np.array([robot_c/resolusion, travel_position[i], travel_position[i+1]])
+        points = np.array([robot_c/resolution, travel_position[i], travel_position[i+1]])
         # calculate the distance between the travel_positions
         distance = np.linalg.norm(travel_position[i]-travel_position[i+1])
-        robot_distance = np.linalg.norm(travel_position[i]-robot_c/resolusion)
+        robot_distance = np.linalg.norm(travel_position[i]-robot_c/resolution)
         print(robot_distance, distance, robot_distance/distance)
         temp_weights = deepcopy(weights)
         temp_weights[0] = min(1.5*robot_distance/distance, 1.85)
@@ -338,22 +358,137 @@ def find_travel_position1(laser_info, robot_c):
         transfer_point.append(optimal_point)
         print(points, optimal_point)
         # plot the transfer point
-        plt.scatter(optimal_point[0], optimal_point[1], c='tab:green', s=60)
+        plt.scatter(optimal_point[0], optimal_point[1], c='tab:green', s=15)
         # # draw the line between the transfer point and the robot_c and the travel point
-        plt.plot([robot_c[0]/resolusion, optimal_point[0]], [robot_c[1]/resolusion, optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
+        plt.plot([robot_c[0]/resolution, optimal_point[0]], [robot_c[1]/resolution, optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
         plt.plot([travel_position[i][0], optimal_point[0]], [travel_position[i][1], optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
         plt.plot([travel_position[i+1][0], optimal_point[0]], [travel_position[i+1][1], optimal_point[1]], c='tab:green', linewidth=1, alpha=0.5)
 
-    plt.scatter(filter_points[:, 0], filter_points[:, 1], c=labels, cmap='viridis', s=60)
+    ### 8. save the travel position and the descriptor
+    travel_position_list = []
+    for i in range(len(travel_position)):
+        temp_node = TravelPositionNode()
+        temp_node._position = travel_position[i]
+        temp_node._descriptor = descriptor_list[i]
+        temp_node._id = i
+        temp_node._upper_transfer = None
+        temp_node._lower_transfer = None
+
+        travel_position_list.append(temp_node)
+
+    plt.scatter(filter_points[:, 0], filter_points[:, 1], c=labels, cmap='viridis', s=30)
     plt.title('DBSCAN Clustering')
 
+    return travel_position_list
     # [debug]plot one the descriptor
-    descriptor_index = 0
-    if len(travel_position) > 0:
-        plot_the_descriptor(travel_position[descriptor_index], descriptor_list[descriptor_index])
-    
-    plt.show()
+    # descriptor_index = 0
+    # if len(travel_position) > 0:
+    #     plot_the_descriptor(travel_position[descriptor_index], descriptor_list[descriptor_index])
 
+
+# key point2: merge the travel position in different frame
+def merge_travel_position(new_travel_position, travel_positions):
+    '''
+    new_travel_position: the travel position in current frame
+    travel_positions: the travel position in all past frame
+    '''
+    if len(travel_positions) == 0:
+        return new_travel_position
+    
+    # determine whether it is the same point based on two criteria
+    # 1. the distance between the new travel position and the past travel position
+    # 2. the descriptor of the new travel position and the past travel position
+    for i in range(len(travel_positions)):
+        for j in range(len(new_travel_position)):
+            # judge the distance first
+            position_new = new_travel_position[j]._position
+            position_in_all = new_travel_position[i]._position
+            # check the distance
+            if np.linalg.norm(position_new-position_in_all) < 0.3/0.05:
+                descriptor_new = new_travel_position[j]._descriptor
+                descriptor_in_all = new_travel_position[i]._descriptor
+                if is_same_descriptor(descriptor_new, descriptor_in_all):
+                    new_travel_position[i]._descriptor = merge_descriptor(descriptor_new, descriptor_in_all)
+                    
+    # add new_descriptor in the travel position list
+    for i in range(len(new_travel_position)):
+        travel_positions.append(new_travel_position[i])
+    
+    # record the relationship between the id and the travel position node
+    for i in range(len(travel_positions)):
+        id_to_node[travel_positions[i]._id] = travel_positions[i]
+
+    return travel_positions
+
+
+def is_same_descriptor(descriptor1, descriptor2):
+    # judge whether the two descriptor is the same
+    # the first step is to calculate the scope of the updated data
+    # If the range overlap is relatively high, calculate the difference between the overlap data
+    # if the overlap is relatively low, directily updating the descriptor
+    overlap_value = 0
+    overlap_count = 0
+    for i in range(len(descriptor1)):
+        if descriptor1[i] != -1 and descriptor2[i] != -1:
+            diff = abs(descriptor1[i] - descriptor2[i])
+            overlap_count += 1
+            if diff < 0.2:
+                overlap_value += 1
+    overlap_value = overlap_value/overlap_count
+    if overlap_count < len(descriptor1)*0.15 or overlap_value > 0.5:
+        return True
+
+    return False
+
+def merge_descriptor(descriptor1, descriptor2):
+    # merge the descriptor
+    # use vector addition to merge the descriptor
+    pass
+
+def iplanning(de_obs, robot_c, goal_position):
+    next_travel_position = None
+    travel_position_list = find_travel_position1(de_obs, robot_c)
+    
+    all_travel_position = merge_travel_position(travel_position_list, all_travel_position)
+
+    next_travel_position = nearest_travel_position_to_goal(all_travel_position, robot_c, goal_position)
+
+    return next_travel_position
+
+
+def nearest_travel_position_to_goal(all_travel_position, current_travel_position, goal_position):
+    '''
+    nearest travel position to the goal
+    '''
+    # add current position and goal_position to the travel position list temporarily
+    temp_travel_position = deepcopy(all_travel_position)
+    temp_travel_position.append(current_travel_position)
+
+    temp_node = TravelPositionNode()
+    temp_node._position = goal_position
+    # calculate the nearest ant not stuck travel position to the goal
+    nearest_i = -1
+    min_distance = np.inf
+    for i in range(len(temp_travel_position)):
+        is_stuck = temp_travel_position[i]._stuck
+        distance = np.linalg.norm(temp_travel_position[i]._position-goal_position)
+        if distance < min_distance and not is_stuck:
+            min_distance = distance
+            nearest_i = i
+
+    temp_node._descriptor = None
+    temp_node._id = -2
+    temp_node._upper_transfer = [nearest_i]
+    temp_node._lower_transfer = None
+    temp_travel_position.append(temp_node)
+
+    # use breath first search to find the nearest travel position to the goal
+    path_point_list = []
+    
+    while():
+        pass
+
+    return path_point_list
 
 
 def plot_the_descriptor(descriptor_pos, descriptor):
@@ -367,78 +502,13 @@ def plot_the_descriptor(descriptor_pos, descriptor):
 
     if len(points) == 0:
         return
-    ax.scatter(np.array(points)[:, 0], np.array(points)[:, 1], c='tab:orange', s=60)
+    ax.scatter(np.array(points)[:, 0], np.array(points)[:, 1], c='tab:orange', s=15)
 
-
-
-def get_tangent_line(tx, ty, ox, oy, r):
-    distance = math.sqrt((tx - ox) ** 2 + (ty - oy) ** 2)
-    length = math.sqrt(distance ** 2 - r ** 2)
-
-    if distance <= r:
-        print("输入的数值不在范围内")
-        return
-
-    cx = abs(ox - tx) / distance
-    cy = abs(oy - ty) / distance
-
-    angle = math.asin(r / distance)
-
-    q1x = cx * math.cos(angle) - cy * math.sin(angle)
-    q1y = cx * math.sin(angle) + cy * math.cos(angle)
-    q2x = cx * math.cos(-angle) - cy * math.sin(-angle)
-    q2y = cx * math.sin(-angle) + cy * math.cos(-angle)
-
-    q1x = q1x * length
-    q1y = q1y * length
-    q2x = q2x * length
-    q2y = q2y * length
-
-    if ox < tx:
-        q1x = -q1x 
-        q2x = -q2x
-    
-    if oy < ty:
-        q1y = -q1y 
-        q2y = -q2y
-
-    q1x += tx
-    q2x += tx
-    q1y += ty
-    q2y += ty
-
-    return [q1x, q1y, q2x, q2y]
-
-def merge_travel_position(last_position_list, cur_position_list):
-    '''
-    calculate the relative score and merge the travel position
-    '''
-    if len(last_position_list) == 0:
-        return cur_position_list
-    elif len(cur_position_list) == 0:
-        return last_position_list
-    else:
-        score_matrix = np.zeros((len(last_position_list), len(cur_position_list)))
-        for i in range(len(last_position_list)):
-            for j in range(len(cur_position_list)):
-                score_matrix[i, j] = np.linalg.norm(last_position_list[i]-cur_position_list[j])
-        score_matrix = score_matrix/np.max(score_matrix)
-        score_matrix = 1 - score_matrix
-        score_matrix = score_matrix/np.sum(score_matrix, axis=1, keepdims=True)
-        score_matrix = np.sum(score_matrix, axis=0)
-        score_matrix = score_matrix/np.sum(score_matrix)
-        score_matrix = np.argsort(score_matrix)
-        score_matrix = score_matrix[::-1]
-        print(score_matrix)
-        if len(score_matrix) > 3:
-            score_matrix = score_matrix[:3]
-        return np.array(cur_position_list)[score_matrix]
-    
 
 if __name__ == '__main__':
     map_file='envs/maps/obstacle_map_occupancy.png'
-    resolusion = 0.05
-    gridmap = OccupancyGridMap.from_png(map_file, resolusion)
+    resolution = 0.05
+    gridmap = OccupancyGridMap.from_png(map_file, resolution)
     pM = PathManager(gridmap)
     start_position = np.array([1.0, 2.0])  # wrong tangent point
     # start_position = np.array([1.0, 2.0])  # wrong tangent point
@@ -449,9 +519,9 @@ if __name__ == '__main__':
     
     robot_yaw = np.pi
     robot_radius = 0.3
-    laser = Laser(beams=128)
+    laser = Laser(beams=256)
     laser.set_map(gridmap)
-    bbox = np.array([1.5, 1.5])/resolusion
+    bbox = np.array([1.5, 1.5])/resolution
 
     robot_instance = None
     laser_points = None
@@ -460,9 +530,9 @@ if __name__ == '__main__':
     def update_robot_plot(location, re=False):
         global robot_instance
         if not re:
-            robot_instance = plt.Circle((location[0]/resolusion, location[1]/resolusion), robot_radius/resolusion, color='tab:gray', fill=False)
+            robot_instance = plt.Circle((location[0]/resolution, location[1]/resolution), robot_radius/resolution, color='tab:gray', fill=False)
         else:
-            robot_instance.set_center((location[0]/resolusion, location[1]/resolusion))
+            robot_instance.set_center((location[0]/resolution, location[1]/resolution))
         return robot_instance
     
     def update_laser_points(points, re=False):
@@ -472,11 +542,11 @@ if __name__ == '__main__':
         else:
             laser_points.set_path(Path(points))
         return laser_points
-        
+    
     # def update_arrow_plot(location):
-    #     dx = np.cos(robot_yaw) * robot_radius/resolusion
-    #     dy = np.sin(robot_yaw) * robot_radius/resolusion
-    #     arrow = plt.Arrow(location[0]/resolusion, location[1]/resolusion, dx, dy, color='tab:green')
+    #     dx = np.cos(robot_yaw) * robot_radius/resolution
+    #     dy = np.sin(robot_yaw) * robot_radius/resolution
+    #     arrow = plt.Arrow(location[0]/resolution, location[1]/resolution, dx, dy, color='tab:green')
     #     return arrow
 
     def update_travel_position(ax, position):
@@ -493,32 +563,33 @@ if __name__ == '__main__':
 
         print("len", len(travel_position_list))
 
-    pM.plot_map()
-    pM.plot_interpolated_path()
-    pM.plot_path()
     ax = plt.gca()
-    ax.add_patch(update_robot_plot(start_position*resolusion))
-    ax.add_patch(update_laser_points(Path([[0, 0]])))
-
+    
     obs_points = None
     obs_path = None
     ver_sets = None
-
+    plt.legend()
     for index in range(len(path)):
-        robot_c = path[index]*resolusion
+        robot_c = path[index]*resolution
         de_obs = laser.state2obs(robot_c, robot_yaw, False)
-        travel_position = find_travel_position1(de_obs, robot_c)
+        travel_position = iplanning(de_obs, robot_c)
+
+        ax.add_patch(update_robot_plot(start_position*resolution))
+        ax.add_patch(update_laser_points(Path([[0, 0]])))
 
         update_robot_plot(robot_c, True)
         update_laser_points(de_obs['point'], True)
-        update_travel_position(ax, travel_position)
+        # update_travel_position(ax, travel_position)
 
-        plt.legend()
+        pM.plot_map()
+        pM.plot_interpolated_path()
+        pM.plot_path()
+        
+        
         plt.tight_layout()
-        plt.axis('off')
-        plt.gcf().canvas.mpl_connect('key_release_event',
-                                        lambda event:
-                                        [exit(0) if event.key == 'escape' else None])
-        plt.pause(0.1) # pause a bit so that plots are updated
+        # save figure with dpi 300
+        plt.savefig('test/result/{}.png'.format(index), dpi=600)
+        plt.cla()
+
         
         
