@@ -237,7 +237,6 @@ def calc_speed_profile(cx, cy, cyaw, target_speed):
 
             if dangle > 0.05:
                 # adjust target_speed based on the curvature
-                print(dangle)
                 ratio = np.exp((dangle - 0.05)/2)
 
         if direction != 1.0:
